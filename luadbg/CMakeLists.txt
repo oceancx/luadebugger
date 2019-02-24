@@ -5,7 +5,6 @@ find_package(CXLua)
 
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../../vscode-mock-debug)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
 
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp")
@@ -33,6 +32,14 @@ target_include_directories(luadbg
 target_link_libraries(luadbg
   PUBLIC CXLua::CXLua
 )
+# set_target_properties(luadbg PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${PROJECT_SOURCE_DIR})
+# target_compile_definitions(luadbg PUBLIC -DVERSION="1.0.3" )
+# target_compile_definitions(luadbg PUBLIC -DLUA_COMPAT_5_2 -DLUA_COMPAT_5_1)
+
+# add_custom_command(TARGET luadbg
+#           POST_BUILD
+#           COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/$<CONFIG>/luadbg.dll ${CMAKE_CURRENT_LIST_DIR}/../test
+# )
 
 include(cmake/HelperMacroFunction.cmake)
 export_library_macro(luadbg luadbg "" lib/cmake/luadbg)

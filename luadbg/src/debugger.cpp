@@ -174,11 +174,42 @@ bool debugger_is_connected()
 	return g_DebugAdapterHandler != nullptr && g_DebugAdapterHandler->connected();
 }
 
-
-void luaopen_debugger(lua_State* L)
+static int debugger_start(lua_State *L)
 {
-	luaL_requirelib(L, "cjson", luaopen_cjson);
+	ezio::IOServiceContext::Init();
 	
+	int port = (int)lua_tointeger(L, 1);
+	if (port > 0)
+	{
+		int res = luaL_loadbuffer(L, debugger_code, strlen(debugger_code), "__debugger__");
+		check_lua_error(L, res);
+		lua_pushstring(L, "debugger");
+		res = lua_pcall(L, 1, LUA_MULTRET, 0);
+		check_lua_error(L, res);
+
+		debuggee_thread = new std::thread(DebuggeeThreadFunc, port);
+	}
+	return 0;
+}
+
+static int debugger_stop(lua_State *L)
+{
+	debugger_stop_session();
+	return 0;
+}
+
+luaL_Reg debuggerlib[] = {
+{ "start", debugger_start },
+{ "stop", debugger_stop },
+{ NULL, NULL }
+};
+ 
+  
+extern "C" __declspec(dllexport) int luaopen_luadbg(lua_State* L)
+{
+	printf("luaopen_luadbg\n"); 
+
+	luaL_newlib(L, debuggerlib);
 	script_system_register_luac_function(L, debugger_start_session);
 	script_system_register_function(L, debugger_stop_session);
 	script_system_register_function(L, debugger_sleep);
@@ -187,6 +218,6 @@ void luaopen_debugger(lua_State* L)
 	script_system_register_function(L, debugger_send_message);
 	script_system_register_function(L, debugger_is_connected);
 	script_system_register_function(L, get_line_ending_in_c);
-	
+	return 1;
 }
 

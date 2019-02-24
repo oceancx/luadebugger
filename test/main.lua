@@ -1,7 +1,10 @@
-debugger_start_session(9527)
+ dllentry = package.loadlib("D:\\Github\\luadebugger\\test\\luadbg.dll", "luaopen_luadbg")
 
+-- dbg = require("luadbg")
+dbg = dllentry()
 
-ma = require("a")
+dbg.start(9527)
+
 local function utils_dump_table(t)
 
     if not t or type(t)~='table' then return end
