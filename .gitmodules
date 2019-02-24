@@ -1,15 +1,15 @@
-[submodule "deps/cxlua"]
-	path = deps/cxlua
+[submodule "internals/cxlua"]
+	path = internals/cxlua
 	url = git@github.com:oceancx/cxlua.git
-[submodule "deps/ezio-cmake"]
-	path = deps/ezio-cmake
+[submodule "internals/ezio-cmake"]
+	path = internals/ezio-cmake
 	url = git@github.com:oceancx/ezio-cmake.git
-[submodule "deps/kbase-cmake"]
-	path = deps/kbase-cmake
+[submodule "internals/kbase-cmake"]
+	path = internals/kbase-cmake
 	url = git@github.com:oceancx/kbase-cmake.git
-[submodule "deps/luacjson-cmake"]
-	path = deps/luacjson-cmake
+[submodule "internals/luacjson-cmake"]
+	path = internals/luacjson-cmake
 	url = git@github.com:oceancx/luacjson-cmake.git
-[submodule "deps/lua-cmake"]
-	path = deps/lua-cmake
+[submodule "internals/lua-cmake"]
+	path = internals/lua-cmake
 	url = git@github.com:oceancx/lua-cmake.git
