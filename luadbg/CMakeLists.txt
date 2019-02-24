@@ -29,12 +29,12 @@ target_include_directories(luadbg
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_compile_features(kbase PUBLIC cxx_std_11)
 #target_compile_definitions(luadbg PRIVATE -DWORKSPACE_ROOT="${PROJECT_SOURCE_DIR}")
 target_link_libraries(luadbg
   PUBLIC CXLua::CXLua
 )
 
+include(cmake/HelperMacroFunction.cmake)
 export_library_macro(luadbg luadbg "" lib/cmake/luadbg)
 # install(FILES
 #     debuggee.lua debugger.lua utils.lua 
