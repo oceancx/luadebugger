@@ -1,0 +1,22 @@
+[20190224 11:22:18,102 WARNING notifier_win.cpp(46)]Async operation 2 on socket 232 failed; error: 10054
+[20190224 11:22:18,103 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#0 with code 10014
+[20190224 11:31:39,371 WARNING notifier_win.cpp(46)]Async operation 2 on socket 232 failed; error: 10054
+[20190224 11:31:39,372 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#0 with code 10014
+[20190224 19:20:56,420 WARNING notifier_win.cpp(46)]Async operation 2 on socket 228 failed; error: 10054
+[20190224 19:20:56,422 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#0 with code 10014
+[20190224 19:21:33,105 WARNING notifier_win.cpp(46)]Async operation 2 on socket 228 failed; error: 10054
+[20190224 19:21:33,106 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#0 with code 10014
+[20190224 19:55:30,012 WARNING notifier_win.cpp(46)]Async operation 2 on socket 228 failed; error: 10054
+[20190224 19:55:30,012 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#0 with code 10014
+[20190224 19:55:54,267 WARNING notifier_win.cpp(46)]Async operation 2 on socket 244 failed; error: 10054
+[20190224 19:55:54,268 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#0 with code 10014
+[20190224 19:57:05,122 WARNING notifier_win.cpp(46)]Async operation 2 on socket 248 failed; error: 10054
+[20190224 19:57:05,122 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#0 with code 10014
+[20190224 19:57:21,867 WARNING notifier_win.cpp(46)]Async operation 2 on socket 232 failed; error: 10054
+[20190224 19:57:21,868 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#0 with code 10014
+[20190224 20:00:53,190 WARNING notifier_win.cpp(46)]Async operation 2 on socket 236 failed; error: 10054
+[20190224 20:00:53,190 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#1 with code 10014
+[20190224 20:06:20,997 WARNING notifier_win.cpp(46)]Async operation 2 on socket 152 failed; error: 10054
+[20190224 20:06:20,997 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#0 with code 10014
+[20190224 20:08:28,489 WARNING notifier_win.cpp(46)]Async operation 2 on socket 240 failed; error: 10054
+[20190224 20:08:28,490 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#0 with code 10014
