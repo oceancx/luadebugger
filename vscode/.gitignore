@@ -2,3 +2,4 @@ src/CMakeLists.txt
 node_modules
 Debug/
 bin/
+*.exe
