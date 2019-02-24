@@ -1,2 +1,0 @@
-[20190224 02:05:49,828 WARNING notifier_win.cpp(46)]Async operation 2 on socket 228 failed; error: 10054
-[20190224 02:05:49,829 ERROR tcp_connection.cpp(157)]Error occurred on -0.0.0.0:9527#0 with code 10014
