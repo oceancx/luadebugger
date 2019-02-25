@@ -3,9 +3,7 @@ project (luadbg VERSION 1.0.0)
 
 find_package(CXLua)
 
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../../vscode-mock-debug)
-
-
+execute_process(COMMAND bash ${CMAKE_CURRENT_LIST_DIR}/generate_inl.sh ${CMAKE_CURRENT_LIST_DIR})
 
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp")
 file(GLOB_RECURSE  SOURCES_HEADER_RPI "src/*.h" )
@@ -28,22 +26,9 @@ target_include_directories(luadbg
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-#target_compile_definitions(luadbg PRIVATE -DWORKSPACE_ROOT="${PROJECT_SOURCE_DIR}")
 target_link_libraries(luadbg
   PUBLIC CXLua::CXLua
 )
-# set_target_properties(luadbg PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${PROJECT_SOURCE_DIR})
-# target_compile_definitions(luadbg PUBLIC -DVERSION="1.0.3" )
-# target_compile_definitions(luadbg PUBLIC -DLUA_COMPAT_5_2 -DLUA_COMPAT_5_1)
-
-# add_custom_command(TARGET luadbg
-#           POST_BUILD
-#           COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/$<CONFIG>/luadbg.dll ${CMAKE_CURRENT_LIST_DIR}/../test
-# )
 
 include(cmake/HelperMacroFunction.cmake)
 export_library_macro(luadbg luadbg "" lib/cmake/luadbg)
-# install(FILES
-#     debuggee.lua debugger.lua utils.lua 
-#     DESTINATION lib
-# )
