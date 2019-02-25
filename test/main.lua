@@ -1,12 +1,13 @@
 --  dllentry = package.loadlib("D:\\Github\\luadebugger\\test\\luadbg.dll", "luaopen_luadbg")
 
--- -- dbg = require("luadbg")
+-- dbg = require("luadbg")
 -- dbg = dllentry()
 
 -- dbg.start(9527)
 dofile('D:\\Github\\luadebugger\\test\\a.lua')
+print('what the fuck')
 debugger_start_session(9527)
-
+print('what the fuc22k')
 local function utils_dump_table(t)
 
     if not t or type(t)~='table' then return end
@@ -50,5 +51,5 @@ do
         end
         last_time = now_time
     end
-    debugger_stop_session()
+    -- debugger_stop_session()
 end

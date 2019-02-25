@@ -1,8 +1,9 @@
 cmake_minimum_required (VERSION 3.10)
 project (luadbgtest VERSION 1.0.0)
 
-find_package(luadbg)
-#find_package(LuaCJson )
+# find_package(luadbg)
+# find_package(LuaCJson )
+find_package(Lua CONFIG)
 
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp")
 file(GLOB_RECURSE  SOURCES_HEADER_RPI "src/*.h" )
@@ -13,6 +14,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Header Files"  FILES $
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include PREFIX "Header Files"  FILES ${SOURCES_HEADER_PUB})
 
 add_executable(luadbgtest
+  ${SOURCES_HEADER_RPI}
   src/main.cpp
 )
 
@@ -25,11 +27,12 @@ target_include_directories(luadbgtest
 )
 
 target_link_libraries(luadbgtest 
-  luadbg
+  # luadbg
   # CXLua::CXLua
-  # Lua::Lua
+  Lua::Lua
   # LuaCJson::LuaCJson
 )
+target_compile_definitions(luadbgtest PUBLIC -DVERSION="${PROJECT_VERSION}")
 set_target_properties(luadbgtest PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR})
 # target_compile_definitions(luadbgtest PUBLIC -DVERSION="1.0.3" )
 # target_compile_definitions(luadbgtest PUBLIC -DLUA_COMPAT_5_2 -DLUA_COMPAT_5_1)
