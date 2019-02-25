@@ -1,9 +1,11 @@
- dllentry = package.loadlib("D:\\Github\\luadebugger\\test\\luadbg.dll", "luaopen_luadbg")
+--  dllentry = package.loadlib("D:\\Github\\luadebugger\\test\\luadbg.dll", "luaopen_luadbg")
 
--- dbg = require("luadbg")
-dbg = dllentry()
+-- -- dbg = require("luadbg")
+-- dbg = dllentry()
 
-dbg.start(9527)
+-- dbg.start(9527)
+dofile('D:\\Github\\luadebugger\\test\\a.lua')
+debugger_start_session(9527)
 
 local function utils_dump_table(t)
 
@@ -44,7 +46,7 @@ do
         if now_time - last_time >= 1 then
             debugger_update_session_new()
             
-            ma.what_the_f2()
+            what_the_f2()
         end
         last_time = now_time
     end

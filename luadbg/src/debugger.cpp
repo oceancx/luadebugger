@@ -203,9 +203,21 @@ luaL_Reg debuggerlib[] = {
 { "stop", debugger_stop },
 { NULL, NULL }
 };
- 
-  
-extern "C" __declspec(dllexport) int luaopen_luadbg(lua_State* L)
+
+void luaopen_debugger(lua_State* L)
+{
+	luaopen_cjson(L);
+	script_system_register_luac_function(L, debugger_start_session);
+	script_system_register_function(L, debugger_stop_session);
+	script_system_register_function(L, debugger_sleep);
+
+	script_system_register_function(L, debugger_fetch_message);
+	script_system_register_function(L, debugger_send_message);
+	script_system_register_function(L, debugger_is_connected);
+	script_system_register_function(L, get_line_ending_in_c);
+}
+//extern "C" __declspec(dllexport) 
+int luaopen_luadbg(lua_State* L)
 {
 	printf("luaopen_luadbg\n"); 
 
