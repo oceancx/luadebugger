@@ -1,11 +1,4 @@
-#include "debugger.h"
-#include "lua_proxy.h"
-static LuaProxy* __proxy__ = NULL;
-LuaProxy* __lua_proxy__()
-{
-	return __proxy__;
-}
-
+#include "luaproxy.h"
 #include "lua_net.h"
 #include "net_thread_queue.h"
 
@@ -27,7 +20,6 @@ LuaProxy* __lua_proxy__()
 #include "lua_bind.h"
 
 using namespace ezio;
-
 
 
 std::string LINES_ENDING = "";
@@ -53,7 +45,8 @@ void check_lua_error(lua_State* L, int res)
 }
 
 #define luaL_requirelib(L,name,fn) (luaL_requiref(L, name, fn, 1),lua_pop(L, 1))
-extern int luaopen_cjson(lua_State *L);
+extern "C"  int luaopen_cjson(lua_State *L);
+
 void DebuggeeThreadFunc(int port)
 {
 	lua_State* L = luaL_newstate();
@@ -208,9 +201,11 @@ static int debugger_stop(lua_State *L)
 
 luaL_Reg debuggerlib[] = {
 { "start", debugger_start },
+{ "start", debugger_start },
 { "stop", debugger_stop },
 { NULL, NULL }
 };
+
 
 void luaopen_debugger(lua_State* L)
 {
@@ -225,9 +220,25 @@ void luaopen_debugger(lua_State* L)
 	script_system_register_function(L, get_line_ending_in_c);
 }
 
+
+int luaopen_luadbg(lua_State* L)
+{
+	luaL_requirelib(L, "cjson", luaopen_cjson);
+	script_system_register_luac_function(L, debugger_start_session);
+	script_system_register_function(L, debugger_stop_session);
+	script_system_register_function(L, debugger_sleep);
+
+	script_system_register_function(L, debugger_fetch_message);
+	script_system_register_function(L, debugger_send_message);
+	script_system_register_function(L, debugger_is_connected);
+	script_system_register_function(L, get_line_ending_in_c);
+	luaL_newlib(L, debuggerlib);
+	return 1;
+}
+
 extern "C"  __declspec(dllexport) bool luadbg_open(LuaProxy* proxy, lua_State* L)
 {
-	__proxy__ = proxy;
+	//__proxy__ = proxy;
 	//luaopen_cjson(;)
 	luaL_requirelib(L, "cjson", luaopen_cjson);
 	//luaL_newlib(L, debuggerlib);
@@ -243,12 +254,34 @@ extern "C"  __declspec(dllexport) bool luadbg_open(LuaProxy* proxy, lua_State* L
 	return true;
 }
 
-extern "C" __declspec(dllexport) int __luadbg_init__(lua_State* L,LuaProxy* proxy)
+LuaProxy* (*__proxy__)();
+LuaProxy* __lua_proxy__()
+{
+	return __proxy__();
+}
+
+extern "C"  __declspec(dllexport) bool luadbg_openfn(LuaProxy* (*proxy)(), lua_State* L)
+{
+	__proxy__ = proxy;
+	//luaopen_cjson(;)
+	luaL_requirelib(L, "cjson", luaopen_cjson);
+	//luaL_newlib(L, debuggerlib);
+
+	script_system_register_luac_function(L, debugger_start_session);
+	script_system_register_function(L, debugger_stop_session);
+	script_system_register_function(L, debugger_sleep);
+
+	script_system_register_function(L, debugger_fetch_message);
+	script_system_register_function(L, debugger_send_message);
+	script_system_register_function(L, debugger_is_connected);
+	script_system_register_function(L, get_line_ending_in_c);
+	return true;
+
+}
+extern "C" __declspec(dllexport) int __luadbg_init__(lua_State* L, LuaProxy*)
 {
 	printf("luaopen_luadbg\n");
-
-	//__init_lua_proxy__(proxy);
-	__proxy__ = proxy;
+	//__lua_proxy__ = proxy;
 
 	luaL_requirelib(L, "cjson", luaopen_cjson);
 	luaL_newlib(L, debuggerlib);

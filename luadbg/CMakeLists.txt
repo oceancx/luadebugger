@@ -17,14 +17,17 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include PREFIX "Header Files"  FIL
 
 add_library(luadbg SHARED
   ${SOURCES_HEADER_PUB}
-  ${SOURCES_HEADER_RPI}
+  ${SOURCES_HEADER_PRI}
   src/debugger.cpp
-  src/lua_cjson.cpp
-  src/strbuf.cpp
+  src/lua_cjson.c
+  src/strbuf.c
   src/lua_net.cpp
   src/net_thread_queue.cpp
-  src/lua_proxy.cpp
 )
+set_source_files_properties(lua_cjson.c PROPERTIES LANGUAGE C )
+set_source_files_properties(strbuf.c PROPERTIES LANGUAGE C )
+
+target_compile_definitions(luadbg PUBLIC -DUSE_LUA_AS_PROXY)
 target_compile_definitions(luadbg PUBLIC -DVERSION="${PROJECT_VERSION}")
 target_compile_definitions(luadbg PUBLIC -DLUA_COMPAT_5_2 -DLUA_COMPAT_5_1)
 target_include_directories(luadbg

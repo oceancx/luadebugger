@@ -39,11 +39,7 @@
 #include <assert.h>
 #include <string.h>
 #include <math.h>
-
-#include <lua.h>
-#include <lauxlib.h>
-#include "lua_proxy.h"
-
+#include "luaproxy.h"
 #include "strbuf.h"
 
 #ifdef MISSING_ISINF
@@ -181,7 +177,7 @@ static json_config_t *json_fetch_config(lua_State *l)
 
     lua_pushlightuserdata(l, &json_config_key);
     lua_gettable(l, LUA_REGISTRYINDEX);
-    cfg = (json_config_t *)lua_touserdata(l, -1);
+    cfg = lua_touserdata(l, -1);
     if (!cfg)
         luaL_error(l, "BUG: Unable to fetch CJSON configuration");
 
@@ -343,7 +339,7 @@ static int json_destroy_config(lua_State *l)
 {
     json_config_t *cfg;
 
-    cfg = (json_config_t *) lua_touserdata(l, 1);
+    cfg = lua_touserdata(l, 1);
     if (cfg)
         strbuf_free(&cfg->encode_buf);
     cfg = NULL;
@@ -356,7 +352,7 @@ static void json_create_config(lua_State *l)
     json_config_t *cfg;
     int i;
 
-    cfg = (json_config_t *)lua_newuserdata(l, sizeof(*cfg));
+    cfg = lua_newuserdata(l, sizeof(*cfg));
 
     /* Create GC method to clean up strbuf */
     lua_newtable(l);

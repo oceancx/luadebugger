@@ -1,6 +1,6 @@
 #pragma once
 #include "any.h"
-#include "lua_proxy.h"
+#include "luaproxy.h"
 #include <functional>
 #include <vector>
 
