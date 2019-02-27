@@ -1,15 +1,15 @@
 ##使用说明：##
 
 1. git clone --recursive git@github.com:oceancx/luadebugger.git
-1. 首先用cmake.exe生成vs工程, config，config，generate，一步到位
-2. 编译luadbg工程，会生成luadbg.lib, luadbg.dll
-3. 手动把生成的luadbg.lib, luadbg.dll拷贝到 luadebugger/test目录里
-4. 编译luadbgtest工程，成功luadebugger/test目录下会有luadbgtest.exe
-5. 编译vsdbgadapter工程，成功luadebugger/vscode目录下会有vsdbgadapter.exe
-6. 用VS Code打开luadebugger/vscode目录，点击左上角的Extension，成功会弹出一个安装了luadbg VS Code插件的VS Code进程。
-7. 在新开的VS Code进程窗口里点击左上角的红点，会出弹窗提示你生成launch.json, 选择CXLua
-8. 成功后VS Code左上角的绿色箭头处会有Attach/Launch的选项
-9. 运行luadbgtest.exe后，点击Attach，即可调试
+2. 首先用cmake.exe生成vs工程, config，config，generate，一步到位
+3. 编译luadbg工程，会生成luadbg.lib, luadbg.dll
+4. 手动把生成的luadbg.lib, luadbg.dll拷贝到 luadebugger/test目录里
+5. 编译luadbgtest工程，成功luadebugger/test目录下会有luadbgtest.exe
+6. 编译vsdbgadapter工程，成功luadebugger/vscode目录下会有vsdbgadapter.exe
+7. 用VS Code打开luadebugger/vscode目录，点击左上角的Extension，成功会弹出一个安装了luadbg VS Code插件的VS Code进程。
+8. 在新开的VS Code进程窗口里点击左上角的红点，会出弹窗提示你生成launch.json, 选择CXLua
+9. 成功后VS Code左上角的绿色箭头处会有Attach/Launch的选项
+10. 运行luadbgtest.exe后，点击Attach，即可调试
 
 ##整合luadbg到自己的lua项目：##
 
