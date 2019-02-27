@@ -1,5 +1,6 @@
 ##使用说明：
 
+1. git clone --recursive git@github.com:oceancx/luadebugger.git
 1. 首先用cmake.exe生成vs工程, config，config，generate，一步到位
 2. 编译luadbg工程，会生成luadbg.lib, luadbg.dll
 3. 手动把生成的luadbg.lib, luadbg.dll拷贝到 luadebugger/test目录里
