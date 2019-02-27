@@ -4,7 +4,7 @@
 2. 首先用cmake.exe生成vs工程, config，config，generate，一步到位
 3. 编译luadbg工程，会生成luadbg.lib, luadbg.dll
 4. 手动把生成的luadbg.lib, luadbg.dll拷贝到 luadebugger/test目录里
-5. 编译luadbgtest工程，成功luadebugger/test目录下会有luadbgtest.exe
+5. 修改luadbgtest工程的main.cpp，里面的路径改成相对于自己电脑的，编译luadbgtest工程，成功luadebugger/test目录下会有luadbgtest.exe
 6. 编译vsdbgadapter工程，成功luadebugger/vscode目录下会有vsdbgadapter.exe
 7. 用VS Code打开luadebugger/vscode目录，点击左上角的Extension，成功会弹出一个安装了luadbg VS Code插件的VS Code进程。
 8. 在新开的VS Code进程窗口里点击左上角的红点，会出弹窗提示你生成launch.json, 选择CXLua
