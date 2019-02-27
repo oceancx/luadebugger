@@ -1,12 +1,6 @@
-[submodule "internals/cxlua"]
-	path = internals/cxlua
-	url = git@github.com:oceancx/cxlua.git
 [submodule "internals/lua-cmake"]
 	path = internals/lua-cmake
 	url = git@github.com:oceancx/lua-cmake.git
-[submodule "internals/luacjson-cmake"]
-	path = internals/luacjson-cmake
-	url = git@github.com:oceancx/luacjson-cmake.git
 [submodule "internals/kbase-cmake"]
 	path = internals/kbase-cmake
 	url = git@github.com:oceancx/kbase-cmake.git
