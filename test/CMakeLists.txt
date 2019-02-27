@@ -2,7 +2,6 @@ cmake_minimum_required (VERSION 3.10)
 project (luadbgtest VERSION 1.0.0)
 
 # find_package(luadbg)
-# find_package(LuaCJson )
 find_package(Lua CONFIG)
 
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp")
@@ -22,20 +21,17 @@ target_include_directories(luadbgtest
     PUBLIC
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../luadbg/include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(luadbgtest 
   # luadbg
-  # CXLua::CXLua
   Lua::Lua
-  # LuaCJson::LuaCJson
 )
-target_compile_definitions(luadbgtest PUBLIC -DVERSION="${PROJECT_VERSION}")
+target_compile_definitions(luadbgtest PUBLIC -DLUADBG_DLL)
 set_target_properties(luadbgtest PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR})
-# target_compile_definitions(luadbgtest PUBLIC -DVERSION="1.0.3" )
-# target_compile_definitions(luadbgtest PUBLIC -DLUA_COMPAT_5_2 -DLUA_COMPAT_5_1)
 
 add_custom_command(TARGET luadbgtest
           POST_BUILD

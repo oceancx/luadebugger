@@ -12,32 +12,16 @@ extern "C" {
 #include <dlfcn.h>
 #endif
 
-#include "lua_proxy.h"
+#include <luadbg.h>
 
-//using LuadbgOpenFunc = bool(*)(void* proxy, lua_State* L);
-//typedef bool (*luadbg_open_func)(LuaProxy* proxy, lua_State* L);
-typedef bool(*luadbg_open_func)(LuaProxy* (*proxy)(), lua_State* L);
+#pragma comment(lib, "D:\\Github\\luadebugger\\luadbg\\Debug\\luadbg.lib")
 
 int main(int argc ,char** argv)
 {
 	lua_State * L = luaL_newstate();
-	luaL_openlibs(L);
-	//luaopen_debugger(L);
-	 
-	//luaL_dostring(L, R"-(package.loadlib("D:\\Github\\luadebugger\\test\\luadbg.dll", "luaopen_dbg"))-");
-
-	//luaopen_debugger(L);
-	//luaL_dofile(L, argv[1]);
-	HMODULE hmod = LoadLibraryA("D:\\Github\\luadebugger\\test\\luadbg.dll");
-
-	if (hmod) {
-		/*luadbg_open_func creator = (luadbg_open_func)GetProcAddress(hmod, "luadbg_open");
-		creator(__lua_proxy_impl__, L);*/
-		luadbg_open_func creator = (luadbg_open_func)GetProcAddress(hmod, "luadbg_openfn");
-		creator(__lua_proxy_impl__, L);
-	}
-
-	luaL_dofile(L, "d:/Github/luadebugger/test/main.lua");
+	luaL_openlibs(L); 
+	luaopen_luadbg(L);
+	luaL_dofile(L, "D:/Github/luadebugger/test/main.lua");
 	
 	printf("%s\n", lua_tostring(L, -1));
 

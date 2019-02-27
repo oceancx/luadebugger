@@ -39,7 +39,7 @@
 #include <assert.h>
 #include <string.h>
 #include <math.h>
-#include "luaproxy.h"
+#include "luadbg.h"
 #include "strbuf.h"
 
 #ifdef MISSING_ISINF

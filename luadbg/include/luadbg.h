@@ -3,9 +3,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 #ifdef __cplusplus
 }
 #endif
@@ -162,7 +162,26 @@ typedef struct _LuaProxy
 	void(*luaL_openlibs)(lua_State *L);
 }LuaProxy;
 
-#ifdef USE_LUA_AS_PROXY
+#if defined(_WIN32) && defined(_LUADBG_BUILD_DLL)
+#define LUADBGAPI __declspec(dllexport)
+#elif defined(_WIN32) && defined(LUADBG_DLL)
+#define LUADBGAPI __declspec(dllimport)
+#elif defined(__GNUC__) && defined(_LUADBG_BUILD_DLL)
+#define LUADBGAPI __attribute__((visibility("default")))
+#else
+#define LUADBGAPI
+#endif
+
+
+#ifdef __cplusplus
+extern "C" { 
+#endif	
+LUADBGAPI int _luaopen_luadbg(LuaProxy* (*__proxy__)(), lua_State* L);
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef _LUADBG_BUILD_DLL
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -319,10 +338,7 @@ extern "C" {
 #define luaL_openlib __lua_proxy__()->luaL_openlib
 #define luaL_openlibs __lua_proxy__()->luaL_openlibs
 
-
-
 #else
-
 
 static LuaProxy* __lua_proxy_impl__()
 {
@@ -478,6 +494,6 @@ static LuaProxy* __lua_proxy_impl__()
 	};
 	return &__impl__;
 }
+#define luaopen_luadbg(L) _luaopen_luadbg(&__lua_proxy_impl__,L)
 
 #endif // USE_LUA_AS_PROXY
-
