@@ -1,4 +1,4 @@
-#使用说明：
+##使用说明：##
 
 1. git clone --recursive git@github.com:oceancx/luadebugger.git
 1. 首先用cmake.exe生成vs工程, config，config，generate，一步到位
@@ -11,7 +11,7 @@
 8. 成功后VS Code左上角的绿色箭头处会有Attach/Launch的选项
 9. 运行luadbgtest.exe后，点击Attach，即可调试
 
-#整合luadbg到自己的lua项目：
+##整合luadbg到自己的lua项目：##
 
 1. 编译luadbg工程，生成luadbg.lib, luadbg.dll
 2. 自己的工程根据情况添加以下代码, 没有注释的是你的代码
