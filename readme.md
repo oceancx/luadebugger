@@ -46,5 +46,6 @@
 
 5. 运行你的工程，然后vscode来Attach即可。
 6. luadbg要求你工程里的dofile或者loadfile必须要传入文件的绝对路径，最好大小写也一致，如果vscode断点不能跳转到你工程里的lua文件，请检查是否符合此要求。
+7. luadbg依赖ezio，因此你的工程需要满足win64和C++14。。。
 
 feel free to bug me~
