@@ -3,7 +3,8 @@ cmake_minimum_required (VERSION 3.10)
 project (vsdbgadapter)
 set(extentiondir ${CMAKE_CURRENT_SOURCE_DIR}) 
 
-find_package(CXLua)
+find_package(Lua CONFIG)
+find_package(EZIO)
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp")
 file(GLOB_RECURSE  SOURCES_HEADER_RPI "src/*.h"  "src/*.inl")
 
@@ -13,6 +14,10 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Header Files"  FILES $
 add_executable(vsdbgadapter
   ${SOURCES_HEADER_RPI}
   src/debugger_adapter.cpp
+  src/lua_cjson.c
+  src/strbuf.c
+  src/lua_net.cpp
+  src/net_thread_queue.cpp
 )
 
 target_include_directories(vsdbgadapter
@@ -24,9 +29,8 @@ target_include_directories(vsdbgadapter
 )
 
 target_link_libraries(vsdbgadapter
-  PUBLIC CXLua::CXLua
+  PUBLIC Lua::Lua EZIO::EZIO
 )
-
 
 set_target_properties(vsdbgadapter PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${extentiondir})
 
