@@ -119,7 +119,7 @@ int luadbg_start(lua_State* L)
 	int port = (int)lua_tointeger(L, 1);
 	if (port > 0)
 	{
-		int res = luaL_loadbuffer(L, debugger_code, strlen(debugger_code), "__debugger__");
+		int res = luaL_loadbuffer(L, debugger_code, strlen(debugger_code), "@__debugger__");
 		check_lua_error(L, res);
 		lua_pushstring(L, "debugger");
 		res = lua_pcall(L, 1, LUA_MULTRET, 0);
@@ -148,15 +148,15 @@ void debugger_sleep(int s)
 {
 #if defined(_WIN32)
 	Sleep(s);
-#else
+#else 
     sleep(s);
-#endif
-}
-
+#endif     
+}     
+   
 const char* debugger_fetch_message()
-{
+{   
 	if (!g_DebugAdapterQueue.Empty(NetThreadQueue::Read))
-	{
+	{ 
 		static std::string msg;
 		msg = g_DebugAdapterQueue.Front(NetThreadQueue::Read);
 		g_DebugAdapterQueue.PopFront(NetThreadQueue::Read);

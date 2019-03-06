@@ -3,7 +3,6 @@ project (luadbg VERSION 1.0.0 LANGUAGES C CXX)
 
 find_package(EZIO)
 
-execute_process(COMMAND bash ${CMAKE_CURRENT_LIST_DIR}/generate_inl.sh ${CMAKE_CURRENT_LIST_DIR})
 
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp" "src/*.c")
 file(GLOB_RECURSE  SOURCES_HEADER_RPI "src/*.h" )
@@ -48,8 +47,14 @@ set_target_properties(luadbg PROPERTIES LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_CURREN
 set_target_properties(luadbg PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(luadbg PROPERTIES ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR})
 
-# add_custom_command(TARGET luadbg
-#           POST_BUILD
-#           COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/$<CONFIG>/luadbg.dll ${CMAKE_CURRENT_LIST_DIR}/../test
-#           COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/$<CONFIG>/luadbg.lib ${CMAKE_CURRENT_LIST_DIR}/../test
-# )
+# execute_process(COMMAND bash ${CMAKE_CURRENT_LIST_DIR}/generate_inl.sh ${CMAKE_CURRENT_LIST_DIR})
+add_custom_command(TARGET luadbg
+          PRE_BUILD
+          COMMAND bash ${CMAKE_CURRENT_LIST_DIR}/generate_inl.sh ${CMAKE_CURRENT_LIST_DIR}
+)
+
+add_custom_command(TARGET luadbg
+          POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/$<CONFIG>/luadbg.dll ${CMAKE_CURRENT_LIST_DIR}/../test
+          COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/$<CONFIG>/luadbg.lib ${CMAKE_CURRENT_LIST_DIR}/../test
+)

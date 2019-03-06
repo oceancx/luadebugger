@@ -93,7 +93,7 @@ local function format_path(path)
         path = string.sub(path, 2)
     end
     path = string.gsub(path,'\\','/')
-    return path
+    return string.lower(path)
 end
         
 local function set_breakpoint(file, line)
@@ -114,14 +114,6 @@ local function has_breakpoint(file, line)
         end
     else 
         return false
-    end
-end
-
-local function fetch_breakpoint(file, line)
-    for i,bp in ipairs(breakpoints[file]) do
-        if bp.line == line then
-            return bp
-        end
     end
 end
 
@@ -151,21 +143,23 @@ end
 
 function debugger_fetch_stacks(start,lv)
     local stackFrames = {}
+    local frameid_index = 0
     for i = start,start+lv  do
         local info = debug.getinfo(i+3)
         if not info then break end
         -- log_trace('fetch_stack',i)
         -- utils_dump_table(info)
-        local frame = {}
-        frame.column = 0
-        frame.id = i
-        frame.line = info.currentline
-        frame.name = info.name or ''
-
         local src_path = info.source
         src_path = format_path(src_path)
         local name = extract_file_name(src_path) 
-        if name ~= '__debugger__' then
+        if info.source ~= '@__debugger__' then
+            log_trace('get stacks',  'i',i, ' frameID', frameId , ' src', name, ' line', info.currentline)
+            
+            local frame = {}
+            frame.column = 0
+            frame.id = #stackFrames + 1
+            frame.line = info.currentline
+            frame.name = info.name or ''
             frame.source = {
                 adapterData = info.what,
                 path = src_path,
@@ -219,17 +213,18 @@ function debugger_fetch_vars(frameId)
 
 
     local count = 0
-    for i = 0 , 30 do 
-        local source = debug.getinfo(i)
-        if not source then break end
-        local src = source.source
-        src = format_path(src)
-
-        local name = extract_file_name(src) 
-        -- log_trace('src', src, 'name', name)
-        if name ~= '__debugger__'  then
+    for i = 3 , 30 do 
+        local info = debug.getinfo(i)
+        if not info then break end
+        
+        local src_path = info.source
+        src_path = format_path(src_path)
+        local name = extract_file_name(src_path) 
+        utils_dump_table(info)
+        if info.source ~= '@__debugger__' then
             count = count + 1
-            -- log_trace('count', count , ' frameID', frameId)
+            log_trace('get vars','cnt',count,  'i',i, ' frameID', frameId , ' src', name, ' line', info.currentline)
+
             if count == frameId then
                 return vars(i)
             end
@@ -460,7 +455,6 @@ function debugger_hook(event, line)
         local info = debug.getinfo(2)   --;utils_dump_table(info)
         local file = info.source
         file = format_path(file)
-        
         if step_into or (step_over and stack_level <= step_level) or has_breakpoint(file,line) then
             if step_into then
                 -- log_trace('step_into' ,'stack_level:'..stack_level)
