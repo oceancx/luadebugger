@@ -48,3 +48,8 @@
 7. luadbg依赖ezio，因此你的工程需要满足win64和C++14。。。
 
 feel free to bug me~
+
+
+VS Code插件本地打包 安装 https://code.visualstudio.com/api/working-with-extensions/publishing-extension
+
+
