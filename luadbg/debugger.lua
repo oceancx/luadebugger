@@ -258,13 +258,12 @@ function encode_vars2ref(vars)
 end
 
 
-
 local breaked_in_hook = false
 local current_stack_frames = {}
 local current_local_vars = {}
 local current_up_vars = {}
 function debugger_handle_message_new(msg)
-    -- log_trace('debugger_handle_message_new',msg)
+    log_trace('debugger_handle_message_new',msg)
     local req = cjson.decode(msg)
     if req.type ~= 'request' then return end
     local cmd = req.command 
@@ -443,11 +442,12 @@ function SetBreakpoints(netq, req)
 end 
 
 function debugger_hook(event, line)
+    if not debugger_is_connected() then return end
     if event == 'call' then
         stack_level = stack_level + 1
     elseif event == 'return' or event  == 'tail return' then
         stack_level = stack_level - 1
-    elseif event == 'line' then
+    elseif event == 'line' then    
         local msg = debugger_fetch_message()
         if msg ~= "" then
             debugger_handle_message_new(msg)
@@ -482,18 +482,4 @@ function debugger_hook(event, line)
     end
 end
 
-
---每帧循环时调用
-local debugger_connected_old = false
-function luadbg_update()
-    local connected = debugger_is_connected()
-    if connected~=debugger_connected_old then
-        debugger_connected_old = connected
-        if connected then
-            debug.sethook(debugger_hook,HOOKMASK)
-        else
-            debug.sethook()
-        end
-    end
-end
-
+debug.sethook(debugger_hook,HOOKMASK)

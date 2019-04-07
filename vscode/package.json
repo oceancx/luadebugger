@@ -1,79 +1,83 @@
 {
-	"name": "luadbgadapter",
-	"displayName": "CXLuaDebuggerAdapter",
-	"version": "0.1.0",
-	"publisher": "oceancx",
-	"author": {
-		"name": "oceancx"
-	},
-	"license": "MIT",
-	"scripts": {},
-	"engines": {
-		"vscode": "^1.0.0",
-        "node": "^4.1.1"
-	},
-	"categories": [
-		"Debuggers"
-	],
-	"private": true,
-	"devDependencies": {},
-	"contributes": {
-		"debuggers": [
-			{
-				"type": "cxlua",
-				"label": "CXLua",
-				"enableBreakpointsFor": {
-					"languageIds": [
-						"lua"
-					]
-				},
-				"program": "./vsdbgadapter.exe",
-				"args": ["--port=0"],
-				"initialConfigurations": [
-					{
-						"name" : "Launch",
-						"type": "cxlua",
-						"request": "launch",
-						"ip" :"127.0.0.1",
-						"port" : 9527,
-						"launchcmd": ".exe"
-					},
-					{
-						"name" : "Attach",
-						"type": "cxlua",
-						"request": "attach",
-						"ip" :"127.0.0.1",
-						"port" : 9527
-					}
-				],
-				"configurationAttributes": {
-					"launch": {
-						"required": ["launchcmd","port"],
-						"properties": {
-							"launchcmd": {
-								"type": "string"
-							},
-							"ip":{
-								"type": "string"
-							},
-							"port":{
-								"type": "integer"
-							}
-						}
-					},
-					"attach" :{
-						"required": ["port"],
-						"properties": {
-							"ip":{
-								"type": "string"
-							},
-							"port": {
-								"type": "number"
-							}
-						}
-					}
-				}
-			}
-		]
-	}
+  "name": "luadbgadapter",
+  "displayName": "CXLuaDebuggerAdapter",
+  "version": "0.1.0",
+  "publisher": "oceancx",
+  "author": {
+    "name": "oceancx"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:oceancx/luadebugger.git"
+  },
+  "license": "MIT",
+  "scripts": {},
+  "engines": {
+    "vscode": "^1.0.0",
+    "node": "^4.1.1"
+  },
+  "categories": [
+    "Debuggers"
+  ],
+  "private": true,
+  "devDependencies": {},
+  "contributes": {
+    "debuggers": [
+      {
+        "type": "cxlua",
+        "label": "CXLua",
+        "enableBreakpointsFor": {
+          "languageIds": [
+            "lua"
+          ]
+        },
+        "program": "./vsdbgadapter.exe",
+        "args": [ "--port=0" ],
+        "initialConfigurations": [
+          {
+            "name": "Launch",
+            "type": "cxlua",
+            "request": "launch",
+            "ip": "127.0.0.1",
+            "port": 9527,
+            "launchcmd": ".exe"
+          },
+          {
+            "name": "Attach",
+            "type": "cxlua",
+            "request": "attach",
+            "ip": "127.0.0.1",
+            "port": 9527
+          }
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [ "launchcmd", "port" ],
+            "properties": {
+              "launchcmd": {
+                "type": "string"
+              },
+              "ip": {
+                "type": "string"
+              },
+              "port": {
+                "type": "integer"
+              }
+            }
+          },
+          "attach": {
+            "required": [ "port" ],
+            "properties": {
+              "ip": {
+                "type": "string"
+              },
+              "port": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
 }

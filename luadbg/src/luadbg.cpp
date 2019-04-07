@@ -112,7 +112,7 @@ void DebuggeeThreadFunc(int port)
 }
 
 kbase::AtExitManager exit_manager;
-int luadbg_start(lua_State* L)
+int luadbg_listen(lua_State* L)
 {
 	ezio::IOServiceContext::Init();
 
@@ -189,8 +189,7 @@ LUADBGAPI int _luaopen_luadbg(LuaProxy* (*proxy)(), lua_State* L)
 	__proxy__ = proxy;
 	luaL_requirelib(L, "cjson", luaopen_cjson);
 
-	script_system_register_luac_function(L, luadbg_start);
-	script_system_register_function(L, luadbg_stop );
+	script_system_register_luac_function(L, luadbg_listen);
 	script_system_register_function(L, debugger_sleep);
 
 	script_system_register_function(L, debugger_fetch_message);
