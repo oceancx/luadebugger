@@ -16,6 +16,9 @@
 
 extern "C" int luaopen_cjson(lua_State *L);
 
+bool g_debugger_adapter_run = false;
+void set_debugger_adapter_run(bool run) { g_debugger_adapter_run = run; }
+
 std::string PATH_SEP("");
 std::string CWD = "";
 int port = 4711;
@@ -43,9 +46,6 @@ enum EDebugProtocolMode
 
 EDebugAdapterLaunchMode g_LaunchMode;
 EDebugProtocolMode g_Mode;
-
-bool g_debugger_adapter_run = false;
-
 
 
 void debugger_adapter_init(int argc, char* argv[])
@@ -208,6 +208,13 @@ void RuntimeThreadFunc(const char* ip,int port)
 		lua_push_tcp_connection(L, conn);
 		int res = lua_pcall(L, 1, 0, 0);
 		check_lua_error(L, res);
+		if (g_RuntimeHandler == nullptr) {
+			set_debugger_adapter_run(false);
+			if (g_Mode == eMode_STDIO)
+			{
+				exit(0);
+			}
+		}
 	});
 	client.set_on_message([L](const TCPConnectionPtr& conn, Buffer& buf, TimePoint ts) {
 		lua_getglobal(L, "runtime_on_message");
@@ -225,15 +232,7 @@ void RuntimeThreadFunc(const char* ip,int port)
 				auto msg = g_RuntimeQueue.Front(NetThreadQueue::Read);
 				g_RuntimeQueue.PopFront(NetThreadQueue::Read);
 				msg = "Content-Length: " + std::to_string(msg.size()) + LINES_ENDING + "" + LINES_ENDING + msg;
-				//std::cout.write(msg.data(), msg.size());
 				g_VscodeQueue.PushBack(NetThreadQueue::Write, msg);
-				/*lua_getglobal(L, "dispatch_runtime_message");
-				lua_push_net_thread_queue(L, &g_RuntimeQueue);
-				lua_pushstring(L, msg.c_str());
-				lua_push_net_thread_queue(L, &g_VscodeQueue);
-
-				res = lua_pcall(L, 3, 0, 0);
-				check_lua_error(L, res);*/
 			}
 		}
 	});
@@ -272,7 +271,6 @@ void vscode_on_attach_cmd(const char* ip, int port)
 	}
 }
 
-void set_debugger_adapter_run(bool run) { g_debugger_adapter_run = run; }
 
 int fetch_runtime_handler(lua_State* L)
 {
