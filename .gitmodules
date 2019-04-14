@@ -1,9 +1,9 @@
 [submodule "internals/lua-cmake"]
 	path = internals/lua-cmake
-	url = git@github.com:oceancx/lua-cmake.git
+	url = https://github.com/oceancx/lua-cmake.git
 [submodule "internals/kbase-cmake"]
 	path = internals/kbase-cmake
-	url = git@github.com:oceancx/kbase-cmake.git
+	url = https://github.com/oceancx/kbase-cmake.git
 [submodule "internals/ezio-cmake"]
 	path = internals/ezio-cmake
-	url = git@github.com:oceancx/ezio-cmake.git
+	url = https://github.com/oceancx/ezio-cmake.git
