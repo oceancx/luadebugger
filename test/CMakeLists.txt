@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.10)
 project (luadbgtest VERSION 1.0.0)
 
-# find_package(luadbg)
+find_package(luadbg)
 find_package(Lua CONFIG)
 
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp")
@@ -27,13 +27,13 @@ target_include_directories(luadbgtest
 )
 
 target_link_libraries(luadbgtest 
-  # luadbg
+  luadbg
   Lua::Lua
 )
-target_compile_definitions(luadbgtest PUBLIC -DLUADBG_DLL)
+# target_compile_definitions(luadbgtest PUBLIC -DLUADBG_DLL)
 set_target_properties(luadbgtest PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_custom_command(TARGET luadbgtest
-          POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/$<CONFIG>/luadbgtest.exe ${CMAKE_CURRENT_LIST_DIR}
-)
+# add_custom_command(TARGET luadbgtest
+#           POST_BUILD
+#           COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/$<CONFIG>/luadbgtest.exe ${CMAKE_CURRENT_LIST_DIR}
+# )
