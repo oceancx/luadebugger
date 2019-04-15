@@ -190,6 +190,8 @@ LUADBGAPI int _luaopen_luadbg(LuaProxy* (*proxy)(), lua_State* L)
 	luaL_requirelib(L, "cjson", luaopen_cjson);
 
 	script_system_register_luac_function(L, luadbg_listen);
+	script_system_register_function(L, luadbg_stop);
+	
 	script_system_register_function(L, debugger_sleep);
 
 	script_system_register_function(L, debugger_fetch_message);
