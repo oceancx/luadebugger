@@ -281,8 +281,8 @@ end
 local parsed_len = -1
 local readstate = 1
 function stdio_on_message(buf,netq, runtime_netq)
-    while buf:readablesize() > 0 do
-        local preview = buf:preview(buf:readablesize())
+    while buf:readable_size() > 0 do
+        local preview = buf:Preview(buf:readable_size())
         -- dbg_trace('preview..' ..preview)
         if readstate == 1 then
             local s,e = preview:find("\n")
@@ -292,7 +292,7 @@ function stdio_on_message(buf,netq, runtime_netq)
                     LINE_ENDING = s and "\r\n" or "\n"
                     set_line_ending_in_c(LINE_ENDING)
                 end
-                local line = buf:readstring(e)
+                local line = buf:ReadAsString(e)
                 local match = line:gmatch("Content%-Length: (%d*)")()
                 if tonumber(match) then
                     parsed_len = tonumber(match)
@@ -307,15 +307,15 @@ function stdio_on_message(buf,netq, runtime_netq)
         elseif readstate == 2 then
             local s,e = preview:find("\n")
             if s then
-                local line = buf:readstring(e)
+                local line = buf:ReadAsString(e)
                 -- dbg_trace(line)
                 readstate = readstate+1
             else
                 break
             end
         elseif readstate == 3 then
-            if buf:readablesize() >= parsed_len then
-                local js  = buf:readstring(parsed_len)
+            if buf:readable_size() >= parsed_len then
+                local js  = buf:ReadAsString(parsed_len)
                 -- dbg_trace('\n----stdio read-----\n'..js)
                 readstate = 1
                 -- netq:push_back(0,js)
