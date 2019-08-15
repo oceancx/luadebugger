@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.10)
 project (luadbg VERSION 1.0.0 LANGUAGES C CXX)
 
-find_package(EZIO)
+find_package(CXLua)
 
 
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp" "src/*.c")
@@ -16,10 +16,10 @@ add_library(luadbg SHARED
   ${SOURCES_HEADER_PUB}
   ${SOURCES_HEADER_PRI}
   src/luadbg.cpp
-  src/lua_cjson.c
-  src/strbuf.c
-  src/lua_net.cpp
-  src/net_thread_queue.cpp
+  #src/lua_cjson.c
+  #src/strbuf.c
+  #src/lua_net.cpp
+  #src/net_thread_queue.cpp
 )
 set_source_files_properties(lua_cjson.c PROPERTIES LANGUAGE C )
 set_source_files_properties(strbuf.c PROPERTIES LANGUAGE C )
@@ -37,7 +37,7 @@ target_include_directories(luadbg
 
 target_link_libraries(luadbg
   PRIVATE
-    EZIO::EZIO
+    CXLua::CXLua
 )
 
 include(cmake/HelperMacroFunction.cmake)

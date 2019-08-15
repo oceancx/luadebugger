@@ -77,9 +77,10 @@ void DebuggeeThreadFunc(int port)
 				{
 					while (!g_DebugAdapterQueue.Empty(NetThreadQueue::Write))
 					{
-						auto msg = g_DebugAdapterQueue.Front(NetThreadQueue::Write);
+						ezio::Buffer& msg = g_DebugAdapterQueue.Front(NetThreadQueue::Write);
+						g_DebugAdapterHandler->Send(kbase::StringView(msg.Peek(), msg.readable_size()));
 						g_DebugAdapterQueue.PopFront(NetThreadQueue::Write);
-						g_DebugAdapterHandler->Send(msg);
+						
 					}
 				}
 			}, TimeDuration(1));
@@ -157,17 +158,18 @@ const char* debugger_fetch_message()
 {   
 	if (!g_DebugAdapterQueue.Empty(NetThreadQueue::Read))
 	{ 
-		static std::string msg;
-		msg = g_DebugAdapterQueue.Front(NetThreadQueue::Read);
+		static std::string msgstr;
+		auto& msg = g_DebugAdapterQueue.Front(NetThreadQueue::Read);
+		msgstr = std::string(msg.Peek(), msg.readable_size());
 		g_DebugAdapterQueue.PopFront(NetThreadQueue::Read);
-		return msg.c_str();
+		return msgstr.c_str();
 	}
 	return "";
 }
 
 void debugger_send_message(const char* msg)
 {
-	g_DebugAdapterQueue.PushBack(NetThreadQueue::Write,msg);
+	g_DebugAdapterQueue.PushBack(NetThreadQueue::Write, msg, strlen(msg));
 }
 
 bool debugger_is_connected()

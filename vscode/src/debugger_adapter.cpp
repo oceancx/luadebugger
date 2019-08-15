@@ -150,9 +150,10 @@ void VscodeThreadFunc(int port)
 		{
 			while (!g_VscodeQueue.Empty(NetThreadQueue::Write))
 			{
-				auto msg = g_VscodeQueue.Front(NetThreadQueue::Write);
+				ezio::Buffer& msg = g_VscodeQueue.Front(NetThreadQueue::Write);
+				g_VscodeHandler->Send(kbase::StringView(msg.Peek(), msg.readable_size()));
 				g_VscodeQueue.PopFront(NetThreadQueue::Write);
-				g_VscodeHandler->Send(msg);
+				
 			}
 		}
 	}, TimeDuration(1));
@@ -168,13 +169,14 @@ void StdioVscodeThreadFunc(int port)
 	{
 		while (!g_VscodeQueue.Empty(NetThreadQueue::Write))
 		{
-			auto msg = g_VscodeQueue.Front(NetThreadQueue::Write);
-			g_VscodeQueue.PopFront(NetThreadQueue::Write);
+			ezio::Buffer& msg = g_VscodeQueue.Front(NetThreadQueue::Write);
 			//	g_VscodeHandler->Send(msg);
 			dbg_trace("vscode respone: \n");
-			dbg_trace(msg.c_str());
-			std::cout.write(msg.data(), msg.size());
+			dbg_trace(std::string(msg.Peek(),msg.readable_size()).c_str());
+			std::cout.write(msg.Peek(), msg.readable_size());
 			std::cout.flush();
+			g_VscodeQueue.PopFront(NetThreadQueue::Write);
+
 		}
 	}
 }
@@ -229,10 +231,10 @@ void RuntimeThreadFunc(const char* ip,int port)
 		{
 			while (!g_RuntimeQueue.Empty(NetThreadQueue::Read))
 			{
-				auto msg = g_RuntimeQueue.Front(NetThreadQueue::Read);
+				ezio::Buffer& msg = g_RuntimeQueue.Front(NetThreadQueue::Read);
 				g_RuntimeQueue.PopFront(NetThreadQueue::Read);
-				msg = "Content-Length: " + std::to_string(msg.size()) + LINES_ENDING + "" + LINES_ENDING + msg;
-				g_VscodeQueue.PushBack(NetThreadQueue::Write, msg);
+				std::string newmsg= "Content-Length: " + std::to_string(msg.readable_size()) + LINES_ENDING + "" + LINES_ENDING + std::string(msg.Peek(),msg.readable_size());
+				g_VscodeQueue.PushBack(NetThreadQueue::Write, newmsg.data(),newmsg.size());
 			}
 		}
 	});
@@ -243,9 +245,9 @@ void RuntimeThreadFunc(const char* ip,int port)
 		{
 			while (!g_RuntimeQueue.Empty(NetThreadQueue::Write))
 			{
-				auto msg = g_RuntimeQueue.Front(NetThreadQueue::Write);
+				ezio::Buffer& msg = g_RuntimeQueue.Front(NetThreadQueue::Write);
+				g_RuntimeHandler->Send({ msg.Peek(),msg.readable_size() });
 				g_RuntimeQueue.PopFront(NetThreadQueue::Write);
-				g_RuntimeHandler->Send(msg);
 			}
 		}
 		
@@ -323,7 +325,8 @@ int debugger_adapter_run(int port)
 		{
 			while (!g_VscodeQueue.Empty(NetThreadQueue::Read))
 			{
-				auto msg = g_VscodeQueue.Front(NetThreadQueue::Read);
+				ezio::Buffer& buf = g_VscodeQueue.Front(NetThreadQueue::Read);
+				std::string msg = buf.ReadAllAsString();
 				g_VscodeQueue.PopFront(NetThreadQueue::Read);
 				
 				lua_getglobal(L, "dispatch_vscode_message");
@@ -337,7 +340,8 @@ int debugger_adapter_run(int port)
 
 			while (!g_RuntimeQueue.Empty(NetThreadQueue::Read))
 			{
-				auto msg = g_RuntimeQueue.Front(NetThreadQueue::Read);
+				ezio::Buffer& buf = g_RuntimeQueue.Front(NetThreadQueue::Read);
+				std::string msg = buf.ReadAllAsString();
 				g_RuntimeQueue.PopFront(NetThreadQueue::Read);
 
 				lua_getglobal(L, "dispatch_runtime_message");
