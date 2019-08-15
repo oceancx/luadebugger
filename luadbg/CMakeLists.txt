@@ -12,14 +12,10 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Source Files"  FILES $
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Header Files"  FILES ${SOURCES_HEADER_RPI})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include PREFIX "Header Files"  FILES ${SOURCES_HEADER_PUB})
 
-add_library(luadbg SHARED
+add_library(luadbg 
   ${SOURCES_HEADER_PUB}
   ${SOURCES_HEADER_PRI}
   src/luadbg.cpp
-  #src/lua_cjson.c
-  #src/strbuf.c
-  #src/lua_net.cpp
-  #src/net_thread_queue.cpp
 )
 set_source_files_properties(lua_cjson.c PROPERTIES LANGUAGE C )
 set_source_files_properties(strbuf.c PROPERTIES LANGUAGE C )
@@ -36,7 +32,7 @@ target_include_directories(luadbg
 )
 
 target_link_libraries(luadbg
-  PRIVATE
+  PUBLIC
     CXLua::CXLua
 )
 

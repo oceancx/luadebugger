@@ -17,7 +17,8 @@
             "type": "cxlua",
             "request": "attach",
             "ip": "127.0.0.1",
-            "port": 9527
+            "port": 9527,
+            "debugServer": 4711
         }
     ]
 }

@@ -1,8 +1,7 @@
 cmake_minimum_required (VERSION 3.10)
 project (luadbgtest VERSION 1.0.0)
 
-find_package(CXLua)
-
+find_package(luadbg)
 
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp")
 file(GLOB_RECURSE  SOURCES_HEADER_RPI "src/*.h" )
@@ -21,16 +20,14 @@ target_include_directories(luadbgtest
     PUBLIC
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../luadbg/include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(luadbgtest 
   luadbg
-  CXLua::CXLua
 )
-# target_compile_definitions(luadbgtest PUBLIC -DLUADBG_DLL)
+#target_compile_definitions(luadbgtest PUBLIC -LUADBG_DLL)
 set_target_properties(luadbgtest PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR})
 
 # add_custom_command(TARGET luadbgtest

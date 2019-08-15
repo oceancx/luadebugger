@@ -1,4 +1,4 @@
-dofile('d:\\Github\\luadebugger\\test\\hello.lua')
+dofile('F:/Github/luadebugger/test/hello.lua')
 
 function main()
     luadbg_listen(9527)

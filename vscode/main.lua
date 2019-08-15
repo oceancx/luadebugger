@@ -16,7 +16,6 @@ function lua_split(str, cut)
     return res
 end
 
-local cjson = require 'cjson'
 function final_send(netq, js)
     if not netq then
         print('not netq')
@@ -29,8 +28,11 @@ function final_send(netq, js)
     table.insert(buf,"")
     table.insert(buf,js)
     local sent = table.concat(buf,get_line_ending_in_c())
-    -- print(sent)
-    netq:push_back(1,sent)
+    print(sent)
+    local send_buf = ezio_buffer_create()
+    send_buf:WriteString(sent)
+    netq:push_back(1,send_buf, send_buf:readable_size() )
+    ezio_buffer_destroy(send_buf)
 end
 
 local message_seq = 1
@@ -319,7 +321,6 @@ function stdio_on_message(buf,netq, runtime_netq)
                 -- dbg_trace('\n----stdio read-----\n'..js)
                 readstate = 1
                 -- netq:push_back(0,js)
-
                 dispatch_vscode_message(netq,js,runtime_netq)
             else
                 break

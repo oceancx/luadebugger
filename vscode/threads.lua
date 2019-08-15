@@ -45,9 +45,9 @@ function create_on_message_parser()
                 end
             elseif readstate == 3 then
                 if buf:readable_size() >= parsed_len then
-                local js  = buf:ReadAsString(parsed_len)
-                readstate = 1
-                netq:push_back(0,js)
+                    netq:push_back(0,buf,parsed_len)
+                    buf:Consume(parsed_len)
+                    readstate = 1
                 else
                     break
                 end

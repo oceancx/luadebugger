@@ -23,12 +23,9 @@ std::string PATH_SEP("");
 std::string CWD = "";
 int port = 4711;
 
-const char* EXTENSION_DIR(const char* dir)
+std::string EXTENSION_DIR(const char* dir)
 {
-	static std::string s_dir;
-	s_dir = CWD;
-	s_dir.append(dir);
-	return s_dir.c_str();
+	return (CWD + dir);
 }
 using namespace ezio;
 
@@ -57,6 +54,8 @@ void debugger_adapter_init(int argc, char* argv[])
 		if (param.find("--port=") != std::string::npos) {
 			std::string str = param.substr(param.find_last_of("=")+1);
 			port = std::stoi(str);
+		}else if(param.find("--cwd=") != std::string::npos){
+			CWD = param.substr(param.find_last_of("=") + 1);
 		}
 		else if (i == 0) {
 			if (param.find_last_of("\\")!= std::string::npos ) {
@@ -114,7 +113,7 @@ void VscodeThreadFunc(int port)
 	luaopen_net_thread_queue(L);
 	script_system_register_function(L, set_line_ending_in_c);
 
-	int res = luaL_loadfile(L, EXTENSION_DIR("threads.lua"));
+	int res = luaL_loadfile(L, EXTENSION_DIR("threads.lua").c_str());
 	check_lua_error(L, res);
 	lua_pushstring(L, "vscode");
 	res = lua_pcall(L, 1, LUA_MULTRET, 0);
@@ -189,7 +188,7 @@ void RuntimeThreadFunc(const char* ip,int port)
 	luaopen_netlib(L);
 	luaopen_net_thread_queue(L);
 	script_system_register_function(L, set_line_ending_in_c);
-	int res = luaL_loadfile(L, EXTENSION_DIR("threads.lua"));
+	int res = luaL_loadfile(L, EXTENSION_DIR("threads.lua").c_str());
 	
 	check_lua_error(L, res);
 	lua_pushstring(L, "runtime");
@@ -316,8 +315,9 @@ int debugger_adapter_run(int port)
 		script_system_register_luac_function(L, fetch_runtime_handler);
 		script_system_register_luac_function(L, fetch_vscode_handler);
 		script_system_register_function(L, get_line_ending_in_c);
+		script_system_register_function(L, dbg_trace);
 
-		int res = luaL_dofile(L, EXTENSION_DIR("main.lua"));
+		int res = luaL_dofile(L, EXTENSION_DIR("main.lua").c_str());
 		check_lua_error(L, res);
 
 		g_debugger_adapter_run = true;
@@ -387,7 +387,7 @@ int debugger_adapter_run(int port)
 		script_system_register_function(L, dbg_trace);
 
 
-		int res = luaL_dofile(L, EXTENSION_DIR("main.lua"));
+		int res = luaL_dofile(L, EXTENSION_DIR("main.lua").c_str());
 		check_lua_error(L, res);
 
 		int c = 0;
