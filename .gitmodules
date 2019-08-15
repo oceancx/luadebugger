@@ -10,3 +10,6 @@
 [submodule "internals/cxlua"]
 	path = internals/cxlua
 	url = https://github.com/oceancx/cxlua.git
+[submodule "internals/luacjson-cmake"]
+	path = internals/luacjson-cmake
+	url = https://github.com/oceancx/luacjson-cmake.git
