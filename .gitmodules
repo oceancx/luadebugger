@@ -7,3 +7,6 @@
 [submodule "internals/ezio-cmake"]
 	path = internals/ezio-cmake
 	url = https://github.com/oceancx/ezio-cmake.git
+[submodule "internals/cxlua"]
+	path = internals/cxlua
+	url = https://github.com/oceancx/cxlua.git
