@@ -25,7 +25,7 @@ target_include_directories(luadbgtest
 )
 
 target_link_libraries(luadbgtest 
-  luadbg
+  luadbg_static
 )
 #target_compile_definitions(luadbgtest PUBLIC -LUADBG_DLL)
 set_target_properties(luadbgtest PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR})

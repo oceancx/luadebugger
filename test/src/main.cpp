@@ -2,9 +2,6 @@
 #include <luadbg.h>
 #include <string>
 
-
-
-
 std::string PATH_SEP("");
 std::string CWD = "";
 int port = 4711;

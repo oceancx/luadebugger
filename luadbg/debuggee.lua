@@ -37,9 +37,9 @@ function create_on_message_parser()
                 end
             elseif readstate == 3 then
                 if buf:readable_size() >= parsed_len then
-                local js  = buf:ReadAsString(parsed_len) 
-                readstate = 1
-                netq:push_back(0,js)
+                    netq:push_back(0,buf,parsed_len)
+                    buf:Consume(parsed_len)
+                    readstate = 1
                 else 
                     break
                 end
@@ -52,7 +52,10 @@ end
 
 function debuggee_on_connection(conn,netq)
     --print('[debuggee]' ..conn:tohostport().. ' ' ..(conn:connected() and 'connected' or 'disconnected'))
-    netq:push_back(0,cjson.encode({ type='debuggee', event='connection_state', connected = conn:connected(), addr = conn:tohostport()  }))
+    local buf = ezio_buffer_create()
+    buf:WriteString(cjson.encode({ type='debuggee', event='connection_state', connected = conn:connected(), addr = conn:tohostport()  }))
+    netq:push_back(0,buf,buf:readable_size())
+    ezio_buffer_destroy(buf)
 end
 
 local debuggee_on_message_parser = create_on_message_parser()
