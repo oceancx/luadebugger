@@ -1,4 +1,4 @@
-print_log_trace = false
+print_log_trace = true
 function log_trace(...)
     if print_log_trace then
         print(...)
@@ -431,7 +431,7 @@ function SetBreakpoints(netq, req)
     local name = args.source.name 
 
     path = format_path(path)
-    breakpoints[path] = {}  -- clear bps
+    breakpoints[path] = {{}}  -- clear bps
     for i,bp in ipairs(args.breakpoints) do
         table.insert(breakpoints[path], { line = bp.line, verified = false, id = 0})
     end

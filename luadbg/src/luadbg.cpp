@@ -18,6 +18,7 @@
 
 #include "luadbg.inl"
 #include "lua_bind.h"
+#include "cxlua.h"
 
 using namespace ezio;
 
@@ -32,31 +33,29 @@ const char* get_line_ending_in_c()
 	return LINES_ENDING.c_str();
 }
 
-
 std::thread* debuggee_thread;
 NetThreadQueue g_DebugAdapterQueue;
 TCPConnectionPtr g_DebugAdapterHandler;
 TimerID g_RuntimeSendTimerID ;
 EventLoop* g_RuntimeServerLoop = nullptr;
 
-void check_lua_error(lua_State* L, int res)
-{
-	if (res != LUA_OK) { printf("%s\n", lua_tostring(L, -1)); }
-}
-
 #define luaL_requirelib(L,name,fn) (luaL_requiref(L, name, fn, 1),lua_pop(L, 1))
 extern "C"  int luaopen_cjson(lua_State *L);
+
+void register_common_lua_functions(lua_State* L){
+	luaL_requirelib(L, "cjson", luaopen_cjson);
+	luaopen_netlib(L);
+	luaopen_net_thread_queue(L);
+	script_system_register_function(L, set_line_ending_in_c);
+	script_system_register_function(L, get_line_ending_in_c);
+}
 
 void DebuggeeThreadFunc(int port)
 {
 	lua_State* L = luaL_newstate();
 	luaL_openlibs(L);
-	luaL_requirelib(L, "cjson", luaopen_cjson);
-	luaopen_netlib(L);
-	luaopen_net_thread_queue(L);
+	register_common_lua_functions(L);
 
-	script_system_register_function(L, set_line_ending_in_c);
-	 
 	int res = luaL_loadbuffer(L, debuggee_code,strlen(debuggee_code),"__debuggee__");
 	check_lua_error(L, res);
 	lua_pushstring(L, "debuggee");
@@ -70,35 +69,13 @@ void DebuggeeThreadFunc(int port)
 
 	server.set_on_connection([L](const TCPConnectionPtr& conn) {
 		g_DebugAdapterHandler = conn->connected() ? conn : nullptr;
-		if (g_DebugAdapterHandler) 
-		{
-			g_RuntimeSendTimerID = g_RuntimeServerLoop->RunTaskEvery([]() {
-				if (g_DebugAdapterHandler && g_DebugAdapterHandler->connected())
-				{
-					while (!g_DebugAdapterQueue.Empty(NetThreadQueue::Write))
-					{
-						ezio::Buffer& msg = g_DebugAdapterQueue.Front(NetThreadQueue::Write);
-						g_DebugAdapterHandler->Send(kbase::StringView(msg.Peek(), msg.readable_size()));
-						g_DebugAdapterQueue.PopFront(NetThreadQueue::Write);
-						
-					}
-				}
-			}, TimeDuration(1));
-		}
-		else
-		{
-			if (g_RuntimeSendTimerID)
-			{
-				g_RuntimeServerLoop->CancelTimedTask(g_RuntimeSendTimerID);
-			}
-		}
-
 		lua_getglobal(L, "debuggee_on_connection");
 		lua_push_tcp_connection(L, conn);
 		lua_push_net_thread_queue(L, &g_DebugAdapterQueue);
 		int res = lua_pcall(L, 2, 0, 0);
 		check_lua_error(L, res);
 	});
+
 	server.set_on_message([L](const TCPConnectionPtr& conn, Buffer& buf, TimePoint ts) {
 		lua_getglobal(L, "debuggee_on_message");
 		lua_push_tcp_connection(L, conn);
@@ -152,7 +129,7 @@ void debugger_sleep(int s)
 }     
    
 const char* debugger_fetch_message()
-{   
+{    
 	if (!g_DebugAdapterQueue.Empty(NetThreadQueue::Read))
 	{ 
 		static std::string msgstr;
@@ -166,7 +143,13 @@ const char* debugger_fetch_message()
 
 void debugger_send_message(const char* msg)
 {
-	g_DebugAdapterQueue.PushBack(NetThreadQueue::Write, msg, strlen(msg));
+	std::string strmsg(msg);
+	g_RuntimeServerLoop->RunTask([strmsg]() {
+		if (g_DebugAdapterHandler && g_DebugAdapterHandler->connected())
+		{
+			g_DebugAdapterHandler->Send(strmsg);
+		}
+	});
 }
 
 bool debugger_is_connected()

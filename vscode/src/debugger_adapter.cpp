@@ -11,10 +11,12 @@
 #include <iostream>
 #include <string.h>
 #include <future>
+#include "cxlua.h"
 
 #define luaL_requirelib(L,name,fn) (luaL_requiref(L, name, fn, 1),lua_pop(L, 1))
 
 extern "C" int luaopen_cjson(lua_State *L);
+void register_common_lua_functions(lua_State* L);
 
 bool g_debugger_adapter_run = false;
 void set_debugger_adapter_run(bool run) { g_debugger_adapter_run = run; }
@@ -94,13 +96,16 @@ NetThreadQueue g_VscodeQueue;
 NetThreadQueue g_RuntimeQueue;
 TCPConnectionPtr g_VscodeHandler;
 TCPConnectionPtr g_RuntimeHandler;
-void check_lua_error(lua_State* L,int res)
+EventLoop* g_VsCodeLoop;
+EventLoop* g_RuntimeLoop;
+
+void _check_lua_error(lua_State* L,int res)
 {
 	if (res != LUA_OK) { 
 		if (g_Mode == eMode_STDIO)
 			std::cerr << lua_tostring(L, -1) << std::endl;
 		else
-			printf("%s\n", lua_tostring(L,-1)); 
+			check_lua_error(L, res);
 	}
 }
 
@@ -108,20 +113,19 @@ void VscodeThreadFunc(int port)
 {
 	lua_State* L = luaL_newstate();
 	luaL_openlibs(L);
-	luaL_requirelib(L, "cjson", luaopen_cjson);
-	luaopen_netlib(L);
-	luaopen_net_thread_queue(L);
-	script_system_register_function(L, set_line_ending_in_c);
+	register_common_lua_functions(L);
+	
 
 	int res = luaL_loadfile(L, EXTENSION_DIR("threads.lua").c_str());
-	check_lua_error(L, res);
+	_check_lua_error(L, res);
 	lua_pushstring(L, "vscode");
 	res = lua_pcall(L, 1, LUA_MULTRET, 0);
-	check_lua_error(L, res);
+	_check_lua_error(L, res);
 
-	EventLoop loop;
+	g_VsCodeLoop = new EventLoop();
+	
 	SocketAddress addr(port);
-	TCPServer server(&loop, addr, "VscodeServer");
+	TCPServer server(g_VsCodeLoop, addr, "VscodeServer");
 
 	server.set_on_connection([L](const TCPConnectionPtr &conn) {
 		g_VscodeHandler = conn->connected() ? conn : nullptr;
@@ -133,7 +137,7 @@ void VscodeThreadFunc(int port)
 		lua_getglobal(L, "vscode_on_connection");
 		lua_push_tcp_connection(L, conn);
 		int res = lua_pcall(L, 1, 0, 0);
-		check_lua_error(L, res);
+		_check_lua_error(L, res);
 	});
 	server.set_on_message([L](const TCPConnectionPtr &conn, Buffer &buf, TimePoint ts) {
 		lua_getglobal(L, "vscode_on_message");
@@ -141,23 +145,13 @@ void VscodeThreadFunc(int port)
 		lua_push_ezio_buffer(L, buf);
 		lua_push_net_thread_queue(L, &g_VscodeQueue);
 		int res = lua_pcall(L, 3, 0, 0);
-		check_lua_error(L, res);
+		_check_lua_error(L, res);
 	});
 	server.Start();
-	loop.RunTaskEvery([]() {
-		if (g_VscodeHandler && g_VscodeHandler->connected())
-		{
-			while (!g_VscodeQueue.Empty(NetThreadQueue::Write))
-			{
-				ezio::Buffer& msg = g_VscodeQueue.Front(NetThreadQueue::Write);
-				g_VscodeHandler->Send(kbase::StringView(msg.Peek(), msg.readable_size()));
-				g_VscodeQueue.PopFront(NetThreadQueue::Write);
-				
-			}
-		}
-	}, TimeDuration(1));
+	
 
-	loop.Run();
+	g_VsCodeLoop->Run();
+	g_VsCodeLoop = nullptr;
 	lua_close(L);
 }
 
@@ -184,20 +178,18 @@ void RuntimeThreadFunc(const char* ip,int port)
 {
 	lua_State* L = luaL_newstate();
 	luaL_openlibs(L);
-	luaL_requirelib(L, "cjson", luaopen_cjson);
-	luaopen_netlib(L);
-	luaopen_net_thread_queue(L);
-	script_system_register_function(L, set_line_ending_in_c);
+	register_common_lua_functions(L);
 	int res = luaL_loadfile(L, EXTENSION_DIR("threads.lua").c_str());
 	
-	check_lua_error(L, res);
+	_check_lua_error(L, res);
 	lua_pushstring(L, "runtime");
 	res = lua_pcall(L, 1, LUA_MULTRET, 0);
-	check_lua_error(L, res);
+	_check_lua_error(L, res);
 
 	SocketAddress addr(ip, port);
-	EventLoop loop;
-	TCPClient client(&loop, addr, "RuntimeClient");
+	g_RuntimeLoop = new EventLoop();
+	
+	TCPClient client(g_RuntimeLoop, addr, "RuntimeClient");
 	client.set_on_connection([L](const TCPConnectionPtr& conn) {
 		g_RuntimeHandler = conn->connected() ? conn : nullptr;
 		if (g_RuntimeHandler == nullptr)
@@ -208,7 +200,7 @@ void RuntimeThreadFunc(const char* ip,int port)
 		lua_getglobal(L, "runtime_on_connection");
 		lua_push_tcp_connection(L, conn);
 		int res = lua_pcall(L, 1, 0, 0);
-		check_lua_error(L, res);
+		_check_lua_error(L, res);
 		if (g_RuntimeHandler == nullptr) {
 			set_debugger_adapter_run(false);
 			if (g_Mode == eMode_STDIO)
@@ -223,7 +215,7 @@ void RuntimeThreadFunc(const char* ip,int port)
 		lua_push_ezio_buffer(L, buf);
 		lua_push_net_thread_queue(L, &g_RuntimeQueue);
 		int res = lua_pcall(L, 3, 0, 0);
-		check_lua_error(L, res);
+		_check_lua_error(L, res);
 
 		
 		if (g_Mode == eMode_STDIO)
@@ -239,20 +231,10 @@ void RuntimeThreadFunc(const char* ip,int port)
 	});
 	client.Connect();
 
-	loop.RunTaskEvery([]() {
-		if (g_RuntimeHandler && g_RuntimeHandler->connected())
-		{
-			while (!g_RuntimeQueue.Empty(NetThreadQueue::Write))
-			{
-				ezio::Buffer& msg = g_RuntimeQueue.Front(NetThreadQueue::Write);
-				g_RuntimeHandler->Send({ msg.Peek(),msg.readable_size() });
-				g_RuntimeQueue.PopFront(NetThreadQueue::Write);
-			}
-		}
-		
-	}, TimeDuration(1));
+	
 
-	loop.Run();
+	g_RuntimeLoop->Run();
+	g_RuntimeLoop = nullptr;
 	lua_close(L);
 }
 
@@ -283,6 +265,7 @@ int fetch_runtime_handler(lua_State* L)
 	return 0;
 }
 
+
 int fetch_vscode_handler(lua_State* L)
 {
 	if (g_VscodeHandler != nullptr)
@@ -291,6 +274,44 @@ int fetch_vscode_handler(lua_State* L)
 		return 1;
 	}
 	return 0;
+}
+
+int netq_send_message(lua_State* L) {
+	NetThreadQueue*  netq = lua_check_net_thread_queue(L, 1);
+	Buffer* buf = lua_check_buffer(L, 2);
+	int len = (int)lua_tointeger(L, 3);
+	std::string msg(buf->Peek(), len);
+	if (netq == &g_VscodeQueue) {
+		if(g_VsCodeLoop){
+			g_VsCodeLoop->RunTask([msg]() {
+				if (g_VscodeHandler && g_VscodeHandler->connected()){
+					g_VscodeHandler->Send(msg);
+				}
+			});
+		}
+	}
+	else if (netq == &g_RuntimeQueue) {
+		if (g_RuntimeLoop) {
+			g_RuntimeLoop->RunTask([msg]() {
+				if (g_RuntimeHandler&& g_RuntimeHandler->connected()) {
+					g_RuntimeHandler->Send(msg);
+				}
+			});
+		}
+	}
+	return 0;
+}
+
+void register_common_lua_functions(lua_State* L)
+{
+	luaL_requirelib(L, "cjson", luaopen_cjson);
+	luaopen_netlib(L);
+	luaopen_net_thread_queue(L);
+	script_system_register_luac_function(L, netq_send_message);
+	script_system_register_function(L, get_line_ending_in_c);
+	script_system_register_function(L, set_line_ending_in_c);
+	script_system_register_luac_function(L, fetch_runtime_handler);
+	script_system_register_luac_function(L, fetch_vscode_handler);
 }
 
 int debugger_adapter_run(int port)
@@ -305,20 +326,15 @@ int debugger_adapter_run(int port)
 		
 		lua_State* L = luaL_newstate();
 		luaL_openlibs(L);
-		luaL_requirelib(L, "cjson", luaopen_cjson);
-		luaopen_netlib(L);
-		luaopen_net_thread_queue(L);
-
 		script_system_register_function(L, vscode_on_launch_cmd);
 		script_system_register_function(L, vscode_on_attach_cmd);
 		script_system_register_function(L, set_debugger_adapter_run);
-		script_system_register_luac_function(L, fetch_runtime_handler);
-		script_system_register_luac_function(L, fetch_vscode_handler);
-		script_system_register_function(L, get_line_ending_in_c);
 		script_system_register_function(L, dbg_trace);
+		register_common_lua_functions(L);
+		
 
 		int res = luaL_dofile(L, EXTENSION_DIR("main.lua").c_str());
-		check_lua_error(L, res);
+		_check_lua_error(L, res);
 
 		g_debugger_adapter_run = true;
 		while (g_debugger_adapter_run)
@@ -335,7 +351,7 @@ int debugger_adapter_run(int port)
 				lua_push_net_thread_queue(L, &g_RuntimeQueue);
 
 				res = lua_pcall(L, 3, 0, 0);
-				check_lua_error(L, res);
+				_check_lua_error(L, res);
 			}
 
 			while (!g_RuntimeQueue.Empty(NetThreadQueue::Read))
@@ -350,7 +366,7 @@ int debugger_adapter_run(int port)
 				lua_push_net_thread_queue(L, &g_VscodeQueue);
 
 				res = lua_pcall(L, 3, 0, 0);
-				check_lua_error(L, res);
+				_check_lua_error(L, res);
 			}
 		}
 		lua_close(L);
@@ -372,23 +388,16 @@ int debugger_adapter_run(int port)
 		thread_set[0] = new std::thread(StdioVscodeThreadFunc, port);
 
 		lua_State* L = luaL_newstate();
-
 		luaL_openlibs(L);
-		luaL_requirelib(L, "cjson", luaopen_cjson);
-		luaopen_netlib(L);
-		luaopen_net_thread_queue(L);
-		script_system_register_function(L, set_line_ending_in_c);
-		script_system_register_function(L, get_line_ending_in_c);
 		script_system_register_function(L, vscode_on_launch_cmd);
 		script_system_register_function(L, vscode_on_attach_cmd);
 		script_system_register_function(L, set_debugger_adapter_run);
-		script_system_register_luac_function(L, fetch_runtime_handler);
-		script_system_register_luac_function(L, fetch_vscode_handler);
 		script_system_register_function(L, dbg_trace);
+		register_common_lua_functions(L);
 
 
 		int res = luaL_dofile(L, EXTENSION_DIR("main.lua").c_str());
-		check_lua_error(L, res);
+		_check_lua_error(L, res);
 
 		int c = 0;
 		g_debugger_adapter_run = true;
@@ -402,7 +411,7 @@ int debugger_adapter_run(int port)
 			lua_push_net_thread_queue(L, &g_VscodeQueue);
 			lua_push_net_thread_queue(L, &g_RuntimeQueue);
 			int res = lua_pcall(L, 3, 0, 0);
-			check_lua_error(L, res);
+			_check_lua_error(L, res);
 		}
 		lua_close(L);
 

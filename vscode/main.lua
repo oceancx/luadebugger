@@ -31,7 +31,7 @@ function final_send(netq, js)
     print(sent)
     local send_buf = ezio_buffer_create()
     send_buf:WriteString(sent)
-    netq:push_back(1,send_buf, send_buf:readable_size() )
+    netq_send_message(netq, send_buf, send_buf:readable_size())
     ezio_buffer_destroy(send_buf)
 end
 
