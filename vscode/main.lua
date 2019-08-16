@@ -1,4 +1,19 @@
-print = dbg_trace
+old_print = print
+
+print = function(...)
+    if is_stdio_mode() then
+        local file = io.open('F:/Github/SimpleEngine/dbg.log','a+')
+        local args = {...}
+        for i,v in ipairs(args) do
+            file:write(v..'\t')
+        end
+        file:write('\n')
+        file:close()
+    else
+        old_print(...)
+    end
+end
+
 function dump_table(t)
     for k,v in pairs(t) do
         print(k,v)
@@ -21,7 +36,7 @@ function final_send(netq, js)
         print('not netq')
         print(debug.traceback())
     end
-    -- print('-->finalsend ')
+    print('-->finalsend ')
 
     local buf = {}
     table.insert(buf,"Content-Length: "..js:len())
@@ -285,7 +300,7 @@ local readstate = 1
 function stdio_on_message(buf,netq, runtime_netq)
     while buf:readable_size() > 0 do
         local preview = buf:Preview(buf:readable_size())
-        -- dbg_trace('preview..' ..preview)
+        -- print('preview..' ..preview)
         if readstate == 1 then
             local s,e = preview:find("\n")
             if s then

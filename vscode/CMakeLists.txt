@@ -32,7 +32,7 @@ set_target_properties(vsdbgadapter PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${extent
 
 add_custom_command(TARGET vsdbgadapter
           POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy ${extentiondir}/$<CONFIG>/vsdbgadapter.exe ${CMAKE_CURRENT_LIST_DIR}
+          COMMAND ${CMAKE_COMMAND} -E copy ${extentiondir}/$<CONFIG>/vsdbgadapter.exe ${extentiondir}/
 )
 
 # configure_file(main.lua  ${extentiondir}/main.lua COPYONLY)
