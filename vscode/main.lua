@@ -1,8 +1,9 @@
 old_print = print
-
+-- old_print('log', get_default_cwd()..'dbg.log')
 print = function(...)
     if is_stdio_mode() then
-        local file = io.open('F:/Github/SimpleEngine/dbg.log','a+')
+        local path = get_default_cwd()..'dbg.log'
+        local file = io.open(path,'a+')
         local args = {...}
         for i,v in ipairs(args) do
             file:write(v..'\t')

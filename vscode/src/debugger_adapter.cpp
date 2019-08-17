@@ -13,21 +13,6 @@
 #include <future>
 #include "cxlua.h"
 
-#define luaL_requirelib(L,name,fn) (luaL_requiref(L, name, fn, 1),lua_pop(L, 1))
-
-extern "C" int luaopen_cjson(lua_State *L);
-void register_common_lua_functions(lua_State* L);
-
-bool g_debugger_adapter_run = false;
-void set_debugger_adapter_run(bool run) { g_debugger_adapter_run = run; }
-
-std::string PATH_SEP("");
-std::string CWD = "";
-int port = 4711;
-std::string EXTENSION_DIR(const char* dir)
-{
-	return (CWD + dir);
-}
 using namespace ezio;
 
 enum EDebugAdapterLaunchMode
@@ -42,9 +27,25 @@ enum EDebugProtocolMode
 	eMode_TCP,
 };
 
+#define luaL_requirelib(L,name,fn) (luaL_requiref(L, name, fn, 1),lua_pop(L, 1))
+extern "C" int luaopen_cjson(lua_State *L);
+
+
+void register_common_lua_functions(lua_State* L);
+
+bool g_debugger_adapter_run = false;
+void set_debugger_adapter_run(bool run) { g_debugger_adapter_run = run; }
+
+std::string CWD = "";
+int port = 4711;
+std::string EXTENSION_DIR(const char* dir)
+{
+	return CWD + dir;
+}
+
+
 EDebugAdapterLaunchMode g_LaunchMode;
 EDebugProtocolMode g_Mode;
-
 
 void debugger_adapter_init(int argc, char* argv[])
 {
@@ -58,18 +59,10 @@ void debugger_adapter_init(int argc, char* argv[])
 		}else if(param.find("--cwd=") != std::string::npos){
 			CWD = param.substr(param.find_last_of("=") + 1);
 		}
-		else if (i == 0) {
-			if (param.find_last_of("\\")!= std::string::npos ) {
-				PATH_SEP = "\\";
-			}
-			else if (param.find_last_of("/") != std::string::npos)
-			{
-				PATH_SEP = "/";
-			}
-			std::string str = param.substr(0, param.find_last_of(PATH_SEP));
-			CWD = str + PATH_SEP;
-		}
 		std::cerr << "arg " << i <<  ":" << argv[i] << std::endl;
+	}
+	if(CWD==""){
+		CWD = get_default_cwd();
 	}
 	std::cerr << "workdir = " << CWD << "   port = " << port << std::endl;
 }
@@ -112,8 +105,7 @@ void VscodeThreadFunc(int port)
 {
 	lua_State* L = luaL_newstate();
 	luaL_openlibs(L);
-	register_common_lua_functions(L);
-	
+	register_common_lua_functions(L);	
 
 	int res = luaL_loadfile(L, EXTENSION_DIR("threads.lua").c_str());
 	_check_lua_error(L, res);
@@ -255,28 +247,6 @@ void vscode_on_attach_cmd(const char* ip, int port)
 	}
 }
 
-
-int fetch_runtime_handler(lua_State* L)
-{
-	if (g_RuntimeHandler)
-	{
-		lua_push_tcp_connection(L, g_RuntimeHandler);
-		return 1;
-	}
-	return 0;
-}
-
-
-int fetch_vscode_handler(lua_State* L)
-{
-	if (g_VscodeHandler != nullptr)
-	{
-		lua_push_tcp_connection(L, g_VscodeHandler);
-		return 1;
-	}
-	return 0;
-}
-
 int netq_send_message(lua_State* L) {
 	NetThreadQueue*  netq = lua_check_net_thread_queue(L, 1);
 	Buffer* buf = lua_check_buffer(L, 2);
@@ -300,6 +270,12 @@ int netq_send_message(lua_State* L) {
 	else if (netq == &g_RuntimeQueue) {
 		if (g_RuntimeHandler&& g_RuntimeHandler->connected()) {
 			g_RuntimeLoop->RunTask([msg]() {
+				while (!g_RuntimeQueue.Empty(NetThreadQueue::Write))
+				{
+					ezio::Buffer& oldmsg = g_RuntimeQueue.Front(NetThreadQueue::Write);
+					g_RuntimeHandler->Send(oldmsg.ReadAllAsString());
+					g_RuntimeQueue.PopFront(NetThreadQueue::Write);
+				}
 				g_RuntimeHandler->Send(msg);
 			});
 		}
@@ -321,11 +297,10 @@ void register_common_lua_functions(lua_State* L)
 	luaL_requirelib(L, "cjson", luaopen_cjson);
 	luaopen_netlib(L);
 	luaopen_net_thread_queue(L);
+	luaopen_cxlua(L);
 	script_system_register_luac_function(L, netq_send_message);
 	script_system_register_function(L, get_line_ending_in_c);
 	script_system_register_function(L, set_line_ending_in_c);
-	script_system_register_luac_function(L, fetch_runtime_handler);
-	script_system_register_luac_function(L, fetch_vscode_handler);
 	script_system_register_function(L, is_stdio_mode);
 }
 
@@ -346,7 +321,7 @@ int debugger_adapter_run(int port)
 		script_system_register_function(L, set_debugger_adapter_run);
 		script_system_register_function(L, dbg_trace);
 		register_common_lua_functions(L);
-
+		
 		int res = luaL_dofile(L, EXTENSION_DIR("main.lua").c_str());
 		_check_lua_error(L, res);
 
@@ -407,7 +382,6 @@ int debugger_adapter_run(int port)
 		script_system_register_function(L, set_debugger_adapter_run);
 		script_system_register_function(L, dbg_trace);
 		register_common_lua_functions(L);
-
 		int res = luaL_dofile(L, EXTENSION_DIR("main.lua").c_str());
 		_check_lua_error(L, res);
 
@@ -448,9 +422,9 @@ int debugger_adapter_run(int port)
 
 int main(int argc, char* argv[])
 {
+	init_default_cwd(argv[0]);
 	kbase::AtExitManager exit_manager;
 	debugger_adapter_init(argc, argv);
 	debugger_adapter_run(port);
-	
 	return 0;
 }
