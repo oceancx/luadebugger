@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.10)
 project (luadbgtest VERSION 1.0.0)
 
-find_package(luadbg)
+find_package(luadbg_static)
 
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp")
 file(GLOB_RECURSE  SOURCES_HEADER_RPI "src/*.h" )

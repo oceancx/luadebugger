@@ -47,10 +47,10 @@ set_target_properties(luadbg_static PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE
 set_target_properties(luadbg_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR})
 
 
-add_custom_command(TARGET luadbg_static
-          PRE_BUILD
-          COMMAND bash ${CMAKE_CURRENT_LIST_DIR}/generate_inl.sh ${CMAKE_CURRENT_LIST_DIR}
-)
+# add_custom_command(TARGET luadbg_static
+#           PRE_BUILD
+#           COMMAND sh ${CMAKE_CURRENT_LIST_DIR}/generate_inl.sh ${CMAKE_CURRENT_LIST_DIR}
+# )
 
 # add_custom_command(TARGET luadbg
 #           POST_BUILD
@@ -93,7 +93,7 @@ set_target_properties(luadbg_shared PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE
 set_target_properties(luadbg_shared PROPERTIES ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR})
 
 
-add_custom_command(TARGET luadbg_shared
-          PRE_BUILD
-          COMMAND bash ${CMAKE_CURRENT_LIST_DIR}/generate_inl.sh ${CMAKE_CURRENT_LIST_DIR}
-)
+# add_custom_command(TARGET luadbg_shared
+#           PRE_BUILD
+#           COMMAND bash ${CMAKE_CURRENT_LIST_DIR}/generate_inl.sh ${CMAKE_CURRENT_LIST_DIR}
+# )
