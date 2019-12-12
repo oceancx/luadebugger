@@ -43,27 +43,13 @@ std::string EXTENSION_DIR(const char* dir)
 	return CWD + dir;
 }
 
-
 EDebugAdapterLaunchMode g_LaunchMode;
 EDebugProtocolMode g_Mode;
 
 void debugger_adapter_init(int argc, char* argv[])
 {
-	for(int i=0;i<argc;i++)
-	{
-		std::string param = argv[i];
-		
-		if (param.find("--port=") != std::string::npos) {
-			std::string str = param.substr(param.find_last_of("=")+1);
-			port = std::stoi(str);
-		}else if(param.find("--cwd=") != std::string::npos){
-			CWD = param.substr(param.find_last_of("=") + 1);
-		}
-		std::cerr << "arg " << i <<  ":" << argv[i] << std::endl;
-	}
-	if(CWD==""){
-		CWD = get_default_cwd();
-	}
+	port = command_arg_opt_int("port", 0);
+	CWD = command_arg_opt_str("cwd", get_default_cwd().c_str());
 	std::cerr << "workdir = " << CWD << "   port = " << port << std::endl;
 }
 
@@ -294,9 +280,6 @@ bool is_stdio_mode()
 
 void register_common_lua_functions(lua_State* L)
 {
-	luaL_requirelib(L, "cjson", luaopen_cjson);
-	luaopen_netlib(L);
-	luaopen_net_thread_queue(L);
 	luaopen_cxlua(L);
 	script_system_register_luac_function(L, netq_send_message);
 	script_system_register_function(L, get_line_ending_in_c);
@@ -307,7 +290,6 @@ void register_common_lua_functions(lua_State* L)
 int debugger_adapter_run(int port)
 {
 	ezio::IOServiceContext::Init();
-
 	thread_set.resize(2);
 	if (port > 0)
 	{
@@ -420,8 +402,9 @@ int debugger_adapter_run(int port)
 	return 0;
 }
 
-int main(int argc, char* argv[])
+int main(int argc,char* argv[])
 {
+	handle_command_args(argc, argv);
 	init_default_cwd(argv[0]);
 	kbase::AtExitManager exit_manager;
 	debugger_adapter_init(argc, argv);
