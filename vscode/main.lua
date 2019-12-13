@@ -1,3 +1,5 @@
+luadbg_listen(9528)
+
 old_print = print
 -- old_print('log', get_default_cwd()..'dbg.log')
 print = function(...)
@@ -37,7 +39,7 @@ function final_send(netq, js)
         print('not netq')
         print(debug.traceback())
     end
-    print('-->finalsend ')
+    print('VSCode-->finalsend ')
 
     local buf = {}
     table.insert(buf,"Content-Length: "..js:len())
@@ -99,6 +101,7 @@ function dispatch_vscode_message(netq,js,runtime_netq)
         elseif cmd == "restart" then
             Restart(netq, req, runtime_netq)
         elseif cmd == "setBreakpoints" then
+            print( 'SetBreakpoints','netq ', netq,' runtime_netq', runtime_netq)
             SetBreakpoints(netq, req, runtime_netq)
         elseif cmd == "setFunctionBreakpoints" then
             SetFunctionBreakpoints(netq, req, runtime_netq)

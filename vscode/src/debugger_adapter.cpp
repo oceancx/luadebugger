@@ -12,6 +12,7 @@
 #include <string.h>
 #include <future>
 #include "cxlua.h"
+#include <luadbg.h>
 
 using namespace ezio;
 
@@ -278,13 +279,48 @@ bool is_stdio_mode()
 	return g_Mode == eMode_STDIO;
 }
 
-void register_common_lua_functions(lua_State* L)
+int  test_bug(lua_State* L)
 {
+	int res = 0;
+	while (!g_VscodeQueue.Empty(NetThreadQueue::Read))
+	{
+		ezio::Buffer& buf = g_VscodeQueue.Front(NetThreadQueue::Read);
+		std::string msg = buf.ReadAllAsString();
+		g_VscodeQueue.PopFront(NetThreadQueue::Read);
+
+		lua_getglobal(L, "dispatch_vscode_message");
+		lua_push_net_thread_queue(L, &g_VscodeQueue);
+		lua_pushstring(L, msg.c_str());
+		lua_push_net_thread_queue(L, &g_RuntimeQueue);
+
+		res = lua_pcall(L, 3, 0, 0);
+		_check_lua_error(L, res);
+	}
+
+	while (!g_RuntimeQueue.Empty(NetThreadQueue::Read))
+	{
+		ezio::Buffer& buf = g_RuntimeQueue.Front(NetThreadQueue::Read);
+		std::string msg = buf.ReadAllAsString();
+		g_RuntimeQueue.PopFront(NetThreadQueue::Read);
+
+		lua_getglobal(L, "dispatch_runtime_message");
+		lua_push_net_thread_queue(L, &g_RuntimeQueue);
+		lua_pushstring(L, msg.c_str());
+		lua_push_net_thread_queue(L, &g_VscodeQueue);
+
+		res = lua_pcall(L, 3, 0, 0);
+		_check_lua_error(L, res);
+	}
+	return 0;
+}
+void register_common_lua_functions(lua_State* L)
+{ 
 	luaopen_cxlua(L);
 	script_system_register_luac_function(L, netq_send_message);
 	script_system_register_function(L, get_line_ending_in_c);
 	script_system_register_function(L, set_line_ending_in_c);
 	script_system_register_function(L, is_stdio_mode);
+	script_system_register_luac_function(L, test_bug);
 }
 
 int debugger_adapter_run(int port)
@@ -303,7 +339,8 @@ int debugger_adapter_run(int port)
 		script_system_register_function(L, set_debugger_adapter_run);
 		script_system_register_function(L, dbg_trace);
 		register_common_lua_functions(L);
-		
+		luaopen_luadbg(L);
+
 		int res = luaL_dofile(L, EXTENSION_DIR("main.lua").c_str());
 		_check_lua_error(L, res);
 

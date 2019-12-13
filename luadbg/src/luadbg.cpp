@@ -23,17 +23,17 @@
 using namespace ezio;
 
 
-std::string LINES_ENDING = "";
+std::string LUADBG_LINES_ENDING = "";
 int debugger_send_message(lua_State* L);
-void set_line_ending_in_c(const char* le)
+void luadbg_set_line_ending_in_c(const char* le)
 {
-	LINES_ENDING = le;
+	LUADBG_LINES_ENDING = le;
 }
-const char* get_line_ending_in_c()
+const char* luadbg_get_line_ending_in_c()
 {
-	return LINES_ENDING.c_str();
+	return LUADBG_LINES_ENDING.c_str();
 }
- 
+  
 std::thread* debuggee_thread;
 NetThreadQueue g_DebugAdapterQueue;
 TCPConnectionPtr g_DebugAdapterHandler;
@@ -43,19 +43,19 @@ EventLoop* g_RuntimeServerLoop = nullptr;
 #define luaL_requirelib(L,name,fn) (luaL_requiref(L, name, fn, 1),lua_pop(L, 1))
 extern "C"  int luaopen_cjson(lua_State *L);
 
-void register_common_lua_functions(lua_State* L){
+void luadbg_register_common_lua_functions(lua_State* L){
 	luaL_requirelib(L, "cjson", luaopen_cjson);
 	luaopen_netlib(L);
 	luaopen_net_thread_queue(L);
-	script_system_register_function(L, set_line_ending_in_c);
-	script_system_register_function(L, get_line_ending_in_c);
+	script_system_register_function(L, luadbg_set_line_ending_in_c);
+	script_system_register_function(L, luadbg_get_line_ending_in_c);
 }
 
 void DebuggeeThreadFunc(int port)
 {
 	lua_State* L = luaL_newstate();
 	luaL_openlibs(L);
-	register_common_lua_functions(L);
+	luadbg_register_common_lua_functions(L);
 
 	int res = luaL_loadbuffer(L, debuggee_code,strlen(debuggee_code),"__debuggee__");
 	check_lua_error(L, res);
@@ -76,7 +76,7 @@ void DebuggeeThreadFunc(int port)
 		int res = lua_pcall(L, 2, 0, 0);
 		check_lua_error(L, res);
 	});
-
+	 
 	server.set_on_message([L](const TCPConnectionPtr& conn, Buffer& buf, TimePoint ts) {
 		lua_getglobal(L, "debuggee_on_message");
 		lua_push_tcp_connection(L, conn);
@@ -100,9 +100,9 @@ int luadbg_listen(lua_State* L)
 		lua_pushstring(L, "debugger");
 		res = lua_pcall(L, 1, LUA_MULTRET, 0);
 		check_lua_error(L, res);
-
 		debuggee_thread = new std::thread(DebuggeeThreadFunc, port);
 	}
+	printf("luadbg_listen %d\n", port);
 	return 0;
 }
 
@@ -140,10 +140,10 @@ const char* debugger_fetch_message()
 		return msgstr.c_str();
 	}
 	return "";
-}
-  
+} 
+   
 int debugger_send_message(lua_State* L)
-{
+{   
 	const char* data = lua_tostring(L, 1);
 	std::string strmsg(data);
 	g_RuntimeServerLoop->RunTask([strmsg]() {
@@ -152,7 +152,7 @@ int debugger_send_message(lua_State* L)
 			g_DebugAdapterHandler->Send(strmsg);
 		}
 	});
-	return 0;
+	return 0; 
 }
 
 bool debugger_is_connected()
@@ -183,7 +183,7 @@ LUADBGAPI int _luaopen_luadbg(LuaProxy* (*proxy)(), lua_State* L)
 	script_system_register_function(L, debugger_is_connected);
 	script_system_register_luac_function(L, debugger_send_message);
 
-	script_system_register_function(L, get_line_ending_in_c);
+	script_system_register_function(L, luadbg_get_line_ending_in_c);
 	return 1;
 }
 #ifdef __cplusplus

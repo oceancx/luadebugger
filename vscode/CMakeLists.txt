@@ -4,6 +4,7 @@ project (vsdbgadapter)
 set(extentiondir ${CMAKE_CURRENT_SOURCE_DIR}) 
 
 find_package(CXLua)
+find_package(luadbg_static)
 
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp")
 file(GLOB_RECURSE  SOURCES_HEADER_RPI "src/*.h"  "src/*.inl")
@@ -25,7 +26,9 @@ target_include_directories(vsdbgadapter
 )
 
 target_link_libraries(vsdbgadapter
-  PUBLIC CXLua::CXLua
+  PUBLIC 
+	CXLua::CXLua
+	luadbg_static
 )
 
 set_target_properties(vsdbgadapter PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${extentiondir})

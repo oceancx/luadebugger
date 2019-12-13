@@ -1,5 +1,5 @@
 print_log_trace = true
-function log_trace(...)
+local function log_trace(...)
     if print_log_trace then
         print(...)
     end
@@ -44,19 +44,19 @@ end
 local cjson = require 'cjson'
 local MAIN_THREAD_ID = 1
 
-function final_send(netq, js)
-    log_trace('-->finalsend')
+function _final_send(js)
+    log_trace('Debugger-->finalsend')
     local buf = {}
     table.insert(buf,"Content-Length: "..js:len())
     table.insert(buf,"")
     table.insert(buf,js)
-    local sent = table.concat(buf,get_line_ending_in_c())
+    local sent = table.concat(buf,luadbg_get_line_ending_in_c())
     log_trace(sent)
     debugger_send_message(sent)
 end
 
 local message_seq = 1
-function send_response(netq, req, success)
+function _send_response( req, success)
     if not req then return end
     local resp = {}
     resp.type = 'response'
@@ -66,19 +66,17 @@ function send_response(netq, req, success)
     resp.body = req.body 
     resp.seq = message_seq
     message_seq = message_seq + 1
-    
-    final_send(netq,cjson.encode(resp))
+        _final_send(cjson.encode(resp))
 end
 
-function send_event(netq, ev, body)
+function _send_event( ev, body)
     local event = {}
     event.type = 'event'
     event.event = ev
     event.body = body
     event.seq = message_seq
     message_seq = message_seq + 1
-
-    final_send(netq,cjson.encode(event))
+    _final_send(cjson.encode(event))
 end          
 
 local breakpoints = {}
@@ -96,7 +94,7 @@ local function format_path(path)
     return string.lower(path)
 end
         
-local function set_breakpoint(file, line)
+function set_breakpoint(file, line)
 
 end
 
@@ -104,7 +102,7 @@ local function remove_breakpoint(file, line)
 
 end
 
-local function has_breakpoint(file, line)
+function has_breakpoint(file, line)
     if breakpoints[file] then
         for i,bp in ipairs(breakpoints[file]) do
             if bp.line == line then
@@ -117,7 +115,7 @@ local function has_breakpoint(file, line)
     end
 end
 
-local function stack_depth(start_depth)
+function stack_depth(start_depth)
     for i = start_depth, 0, -1 do
         if debug.getinfo(i, "l") then return i+1 end
     end
@@ -135,7 +133,7 @@ function debugger_verify_breakpoints()
     end
 end
 
-local function extract_file_name(path)
+function extract_file_name(path)
     local s,e =  path:find('.*/')
     if not s then return path end
     return path:sub( e+1 )
@@ -276,54 +274,54 @@ function debugger_handle_message_new(msg)
 
     elseif cmd == "disconnect" then
         --{"command":"disconnect","arguments":{"restart":false},"type":"request","seq":93}
-        send_response(netq,req)
+        _send_response(req)
         breakpoints = {}
         breaked_in_hook = false
     elseif cmd == "restart" then
         
     elseif cmd == "setBreakpoints" then
-        SetBreakpoints(netq, req)
+        _SetBreakpoints(req)
     elseif cmd == "configurationDone" then
         if launch_req then
-            send_response(netq,launch_req)
-            send_event(netq, 'stopped', { reason='entry', threadId = MAIN_THREAD_ID })
-            send_response(netq, req)
+            _send_response(launch_req)
+            _send_event( 'stopped', { reason='entry', threadId = MAIN_THREAD_ID })
+            _send_response( req)
             step_into = true        --stop on entry
         end
     elseif cmd == "continue" then
         -- assert(breaked_in_hook)
-        send_response(netq,req)
+        _send_response(req)
         step_into = false
         step_over = false
         breaked_in_hook = false
     elseif cmd == 'stepIn' then
         -- {"request_seq":66,"command":"stepIn","success":true,"seq":74,"type":"response"}
-        send_response(netq,req)
+        _send_response(req)
         step_into = true
         breaked_in_hook = false
     elseif cmd == 'next'  then
         ---{"type":"request","command":"next","arguments":{"threadId":1},"seq":50}
         -- assert(breaked_in_hook)
-        send_response(netq,req)
+        _send_response(req)
         step_into = false
         step_over = true
         step_level = stack_level
         breaked_in_hook = false
     elseif cmd == "stepOut" then
         -- {"seq":272,"type":"request","arguments":{"threadId":1},"command":"stepOut"}
-        send_response(netq, req)
+        _send_response( req)
         step_into = false
         step_over = true
         step_level = stack_level - 1 
         breaked_in_hook = false
     elseif cmd == "stepOver" then
-        -- StepOver(netq, req)
+        -- StepOver( req)
     elseif cmd == "stepBack" then
-        -- StepBack(netq, req)
+        -- StepBack( req)
     elseif cmd == "pause" then
         --{"arguments":{"threadId":1},"command":"pause","type":"request","seq":11}
         -- assert(not breaked_in_hook)
-        send_response(netq,req)
+        _send_response(req)
         step_into = true
     elseif cmd == "stackTrace" then
         -- assert(breaked_in_hook)
@@ -335,7 +333,7 @@ function debugger_handle_message_new(msg)
         req.body = {}
         req.body.stackFrames = stackFrames
         req.body.totalFrames = #stackFrames 
-        send_response(netq,req)
+        _send_response(req)
         current_stack_frames = stackFrames
     elseif cmd == "scopes" then
         -- log_trace(msg)
@@ -358,7 +356,7 @@ function debugger_handle_message_new(msg)
                 {name='Ups', variablesReference=root_up, expensive = true}
             }
         }
-        send_response(netq,req)
+        _send_response(req)
 
     elseif cmd == "variables" then
         --{"command":"variables","arguments":{"variablesReference":1001},"type":"request","seq":46}
@@ -381,7 +379,7 @@ function debugger_handle_message_new(msg)
         req.body = {
             variables = variables
         }
-        send_response(netq,req)
+        _send_response(req)
     elseif cmd == "source" then
         
     elseif cmd == "threads" then
@@ -390,7 +388,7 @@ function debugger_handle_message_new(msg)
         req.body.threads = { 
             {id = MAIN_THREAD_ID, name='thread 1'}
         }
-        send_response(netq,req)
+        _send_response(req)
     elseif cmd == "evaluate" then
         --{"command":"evaluate","arguments":{"expression":"t2343123","frameId":1,"context":"hover"},"type":"request","seq":76}
         local frameId = req.arguments.frameId 
@@ -418,14 +416,14 @@ function debugger_handle_message_new(msg)
             }
         end
         
-        send_response(netq,req)
+        _send_response(req)
 
     elseif cmd == "loadedSources" then
-        LoadedSources(netq, req)
+        
     end
 end
 
-function SetBreakpoints(netq, req)
+function _SetBreakpoints( req)
     local args = req.arguments
     local path = args.source.path
     local name = args.source.name 
@@ -438,7 +436,7 @@ function SetBreakpoints(netq, req)
     debugger_verify_breakpoints()
     req.body = {}
     req.body.breakpoints = breakpoints[path]
-    send_response(netq, req)
+    _send_response( req)
 end 
 
 function debugger_hook(event, line)
@@ -458,12 +456,12 @@ function debugger_hook(event, line)
         if step_into or (step_over and stack_level <= step_level) or has_breakpoint(file,line) then
             if step_into then
                 -- log_trace('step_into' ,'stack_level:'..stack_level)
-                send_event(netq, 'stopped', { reason='step', threadId = MAIN_THREAD_ID })
+                _send_event( 'stopped', { reason='step', threadId = MAIN_THREAD_ID })
             elseif (step_over and step_level <= stack_level) then
                 -- log_trace('step_over', 'step_level:'..step_level, 'stack_level:'..stack_level)
-                send_event(netq, 'stopped', { reason='step', threadId = MAIN_THREAD_ID })
+                _send_event( 'stopped', { reason='step', threadId = MAIN_THREAD_ID })
             else
-                send_event(netq, 'stopped', { reason='breakpoint', threadId = MAIN_THREAD_ID })
+                _send_event( 'stopped', { reason='breakpoint', threadId = MAIN_THREAD_ID })
             end
             step_into = false
             step_over = false
@@ -475,6 +473,7 @@ function debugger_hook(event, line)
                 if msg ~= "" then
                     debugger_handle_message_new(msg)
                 else 
+                    test_bug()
                     debugger_sleep(10)
                 end     
             end
