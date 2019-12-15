@@ -17,7 +17,7 @@ print = function(...)
 end
 
 
-
+local WORK_CWD = ''
 local message_seq = 1
 function vscode_final_send(js)
     local buf = {}
@@ -119,7 +119,7 @@ function dispatch_vscode_message(js)
             local arguments = req.arguments
             local ip = arguments.ip
             local port = math.tointeger(arguments.port)
-            -- local cwd = arguments.cwd
+            local cwd = arguments.cwd
             vscode_on_attach_cmd(ip,port)
             runtime_final_send(cjson.encode(req))
         elseif cmd == "disconnect" then
@@ -250,7 +250,8 @@ function DA_in_break()
 end
 
 function main()
-    luadbg_listen(9528)
+    -- luadbg_listen(9528)
+    WORK_CWD = command_arg_get('cwd')
     while is_debugger_adapter_run() do
         local vs_netq = fetch_vscode_netq()
         while not vs_netq:empty(0) do

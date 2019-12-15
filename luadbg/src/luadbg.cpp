@@ -21,12 +21,12 @@
 #include "cxlua.h"
 
 using namespace ezio;
-
-
+    
+     
 std::string LUADBG_LINES_ENDING = "";
 int debugger_send_message(lua_State* L);
 void luadbg_set_line_ending_in_c(const char* le)
-{
+{ 
 	LUADBG_LINES_ENDING = le;
 }
 const char* luadbg_get_line_ending_in_c()
@@ -176,7 +176,7 @@ LUADBGAPI int _luaopen_luadbg(LuaProxy* (*proxy)(), lua_State* L)
 	script_system_register_function(L, luadbg_stop);
 	
 	script_system_register_function(L, debugger_sleep);
-
+	  
 	script_system_register_function(L, debugger_fetch_message);
 	script_system_register_function(L, debugger_is_connected);
 	script_system_register_luac_function(L, debugger_send_message);

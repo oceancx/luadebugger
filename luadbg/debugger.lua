@@ -86,12 +86,14 @@ local step_level = 0
 local stack_level = 0
 local HOOKMASK = 'lcr'
 
-local function format_path(path)
+local function format_lua_path(path)
     if string.find(path, '@') == 1 then
         path = string.sub(path, 2)
     end
-    path = string.gsub(path,'\\','/')
-    return string.lower(path)
+    local first_c = path:sub(1,1)
+    first_c = first_c:lower()
+    path = first_c..path:sub(2)
+    return path
 end
         
 function set_breakpoint(file, line)
@@ -106,7 +108,6 @@ function has_breakpoint(file, line)
     if breakpoints[file] then
         for i,bp in ipairs(breakpoints[file]) do
             if bp.line == line then
-                
                 return true
             end
         end
@@ -147,11 +148,11 @@ function debugger_fetch_stacks(start,lv)
         if not info then break end
         -- log_trace('fetch_stack',i)
         -- utils_dump_table(info)
-        local src_path = info.source
-        src_path = format_path(src_path)
-        local name = extract_file_name(src_path) 
         if info.source ~= '@__debugger__' then
-            log_trace('get stacks',  'i',i, ' frameID', frameId , ' src', name, ' line', info.currentline)
+            local src_path = format_lua_path(info.source)
+            local name = src_path:match(string.format('%s(.+)',WORK_CWD))
+            --  src_path:match('.*[\\/](.*)') 
+            -- log_trace('get stacks',  'i',i, ' frameID', frameId , ' src', name, ' line', info.currentline)
             
             local frame = {}
             frame.column = 0
@@ -216,7 +217,7 @@ function debugger_fetch_vars(frameId)
         if not info then break end
         
         local src_path = info.source
-        src_path = format_path(src_path)
+        src_path = format_lua_path(src_path)
         local name = extract_file_name(src_path) 
         utils_dump_table(info)
         if info.source ~= '@__debugger__' then
@@ -271,8 +272,8 @@ function debugger_handle_message_new(msg)
         launch_req = req
     elseif cmd == "attach" then
         launch_req = req
-        if req.cwd then
-            WORK_CWD = req.cwd
+        if req.arguments and req.arguments.cwd then
+            WORK_CWD = req.arguments.cwd
         end
     elseif cmd == "disconnect" then
         --{"command":"disconnect","arguments":{"restart":false},"type":"request","seq":93}
@@ -425,11 +426,11 @@ function debugger_handle_message_new(msg)
     end
 end
 
-function _SetBreakpoints( req)
+function _SetBreakpoints(req)
     local args = req.arguments
     local path = args.source.path
     local name = args.source.name 
-    path = format_path(path)
+    
     breakpoints[path] = {{}}  -- clear bps
     for i,bp in ipairs(args.breakpoints) do
         table.insert(breakpoints[path], { line = bp.line, verified = false, id = 0})
@@ -453,7 +454,7 @@ function debugger_hook(event, line)
         end
         local info = debug.getinfo(2)   --;utils_dump_table(info)
         local file = info.source
-        file = format_path(file)
+        file = format_lua_path(file)
         if step_into or (step_over and stack_level <= step_level) or has_breakpoint(file,line) then
             if step_into then
                 -- log_trace('step_into' ,'stack_level:'..stack_level)
@@ -474,7 +475,9 @@ function debugger_hook(event, line)
                 if msg ~= "" then
                     debugger_handle_message_new(msg)
                 else 
-                    DA_in_break()
+                    -- if DA_in_break then
+                    --     DA_in_break()
+                    -- end
                     debugger_sleep(10)
                 end     
             end

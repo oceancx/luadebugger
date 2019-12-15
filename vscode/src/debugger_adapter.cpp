@@ -14,7 +14,7 @@
 #include "cxlua.h"
 #include <luadbg.h>
 
-using namespace ezio;
+using namespace ezio; 
 
 enum EDebugAdapterLaunchMode
 {
@@ -289,7 +289,6 @@ int debugger_adapter_run(int port)
 
 		script_system_register_luac_function(L, fetch_vscode_netq);
 		script_system_register_luac_function(L, fetch_runtime_netq);
-
 			
 		register_common_lua_functions(L);
 		luaopen_luadbg(L);
@@ -297,8 +296,6 @@ int debugger_adapter_run(int port)
 		g_debugger_adapter_run = true;
 		int res = luaL_dofile(L, EXTENSION_DIR("main.lua").c_str());
 		_check_lua_error(L, res);
-
-
 		
 		lua_close(L);
 
