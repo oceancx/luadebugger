@@ -5,20 +5,6 @@ local function log_trace(...)
     end
 end
 
-
-local function utils_string_split(str, cut)
-    str = str..cut 
-    local pattern  = '(.-)'..cut
-    local res = {}
-    for w in string.gmatch(str, pattern) do
-        table.insert(res,w)
-        --log_trace(w)
-    end
-    return res
-end
-
-
-
 local function utils_dump_table(t)
     if not t or type(t)~='table' then return end
    
@@ -42,7 +28,6 @@ end
 
 local WORK_CWD=''
 local MAIN_THREAD_ID = 1
-
 local message_seq = 1
 
 function _final_send(js)
@@ -86,7 +71,7 @@ local step_level = 0
 local stack_level = 0
 local HOOKMASK = 'lcr'
 
-local function format_lua_path(path)
+function format_lua_path(path)
     if string.find(path, '@') == 1 then
         path = string.sub(path, 2)
     end
@@ -96,14 +81,6 @@ local function format_lua_path(path)
     return path
 end
         
-function set_breakpoint(file, line)
-
-end
-
-local function remove_breakpoint(file, line)
-
-end
-
 function has_breakpoint(file, line)
     if breakpoints[file] then
         for i,bp in ipairs(breakpoints[file]) do
@@ -132,12 +109,6 @@ function debugger_verify_breakpoints()
             bp.verified = true
         end
     end
-end
-
-function extract_file_name(path)
-    local s,e =  path:find('.*/')
-    if not s then return path end
-    return path:sub( e+1 )
 end
 
 function debugger_fetch_stacks(start,lv)
@@ -218,7 +189,7 @@ function debugger_fetch_vars(frameId)
         
         local src_path = info.source
         src_path = format_lua_path(src_path)
-        local name = extract_file_name(src_path) 
+        local name = src_path:match(string.format('%s(.+)',WORK_CWD))
         utils_dump_table(info)
         if info.source ~= '@__debugger__' then
             count = count + 1
@@ -374,11 +345,14 @@ function debugger_handle_message_new(msg)
             variable.value = tostring(v)
             if variable.type == 'table' then
                 variable.variablesReference = encode_vars2ref(v)
-            else
-                variable.variablesReference = 0
+            -- else
+            --     variable.variablesReference = 0
             end
             table.insert(variables,variable)
         end
+        table.sort(variables,function(a,b)
+            return a.name < b.name
+        end)
         req.body = {
             variables = variables
         }
@@ -431,7 +405,7 @@ function _SetBreakpoints(req)
     local path = args.source.path
     local name = args.source.name 
     
-    breakpoints[path] = {{}}  -- clear bps
+    breakpoints[path] = {}  -- clear bps
     for i,bp in ipairs(args.breakpoints) do
         table.insert(breakpoints[path], { line = bp.line, verified = false, id = 0})
     end
@@ -475,9 +449,9 @@ function debugger_hook(event, line)
                 if msg ~= "" then
                     debugger_handle_message_new(msg)
                 else 
-                    -- if DA_in_break then
-                    --     DA_in_break()
-                    -- end
+                    if DA_in_break then
+                        DA_in_break()
+                    end
                     debugger_sleep(10)
                 end     
             end

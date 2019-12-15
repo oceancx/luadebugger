@@ -108,6 +108,15 @@ void VscodeThreadFunc(int port)
 			g_VscodeQueue.Clear(NetThreadQueue::Read);
 			g_VscodeQueue.Clear(NetThreadQueue::Write);
 		}
+		else {
+			while (!g_VscodeQueue.Empty(NetThreadQueue::Write)) {
+				ezio::Buffer& msg = g_VscodeQueue.Front(NetThreadQueue::Write);
+				auto str = msg.ReadAllAsString();
+				printf("Send Cache\nDA => VS:\n%s\n", str.c_str());
+				g_VscodeHandler->Send(str);
+				g_VscodeQueue.PopFront(NetThreadQueue::Write);
+			}
+		}
 		lua_getglobal(L, "vscode_on_connection");
 		lua_push_tcp_connection(L, conn);
 		int res = lua_pcall(L, 1, 0, 0);
@@ -181,7 +190,9 @@ void RuntimeThreadFunc(const char* ip,int port)
 			while (!g_RuntimeQueue.Empty(NetThreadQueue::Write))
 			{
 				ezio::Buffer& msg = g_RuntimeQueue.Front(NetThreadQueue::Write);
-				g_RuntimeHandler->Send(msg.ReadAllAsString());
+				auto str = msg.ReadAllAsString();
+				printf("Send Cache\nDA => RT:\n%s\n", str.c_str());
+				g_RuntimeHandler->Send(str);
 				g_RuntimeQueue.PopFront(NetThreadQueue::Write);
 			}
 		}
@@ -250,6 +261,8 @@ void vscode_send_message(const char* msg){
 	if (g_VscodeHandler && g_VscodeHandler->connected()) {
 		printf("\nDA => VS:\n%s\n", msg);
 		g_VscodeHandler->Send(msg);
+	}else{
+		g_VscodeQueue.PushBack(NetThreadQueue::Write, msg,strlen(msg));		
 	}
 }
 
@@ -257,6 +270,9 @@ void runtime_send_message(const char* msg){
 	if (g_RuntimeHandler && g_RuntimeHandler->connected()) {
 		printf("\nDA => RT:\n%s\n", msg);
 		g_RuntimeHandler->Send(msg);
+	}
+	else {
+		g_RuntimeQueue.PushBack(NetThreadQueue::Write, msg, strlen(msg));
 	}
 }
 int fetch_vscode_netq(lua_State*L){
