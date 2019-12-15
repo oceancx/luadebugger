@@ -75,22 +75,36 @@ function format_lua_path(path)
     if string.find(path, '@') == 1 then
         path = string.sub(path, 2)
     end
-    local first_c = path:sub(1,1)
-    first_c = first_c:lower()
-    path = first_c..path:sub(2)
+
+    local lua_subpaths = {} 
+    path = path..'/'
+    local i = 1
+    for subpath in path:gmatch('(.-)[\\/]') do
+        if i == 1 then
+            subpath = subpath:lower()
+        end
+        if subpath == '..' then
+            table.remove(lua_subpaths)
+        else
+            table.insert(lua_subpaths,subpath)
+        end
+        i = i + 1
+    end
+    path = table.concat(lua_subpaths,'\\')
     return path
 end
-        
+
 function has_breakpoint(file, line)
-    if breakpoints[file] then
-        for i,bp in ipairs(breakpoints[file]) do
-            if bp.line == line then
-                return true
+    for path,bps in pairs(breakpoints) do
+        
+            for i,bp in ipairs(bps) do
+                if bp.line == line then
+                    return true
+                end
             end
-        end
-    else 
-        return false
+        
     end
+    return false
 end
 
 function stack_depth(start_depth)
