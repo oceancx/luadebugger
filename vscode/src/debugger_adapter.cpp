@@ -28,15 +28,11 @@ enum EDebugProtocolMode
 	eMode_TCP,
 };
 
-#define luaL_requirelib(L,name,fn) (luaL_requiref(L, name, fn, 1),lua_pop(L, 1))
-extern "C" int luaopen_cjson(lua_State *L);
-
-
 void register_common_lua_functions(lua_State* L);
 
 bool g_debugger_adapter_run = false;
-void set_debugger_adapter_run(bool run) { g_debugger_adapter_run = run; }
-
+void set_debugger_adapter_run(bool run) { g_debugger_adapter_run = run; }\
+bool is_debugger_adapter_run() { return g_debugger_adapter_run; }
 std::string CWD = "";
 int port = 4711;
 std::string EXTENSION_DIR(const char* dir)
@@ -231,47 +227,10 @@ void vscode_on_attach_cmd(const char* ip, int port)
 	if (thread_set[1] == nullptr)
 	{
 		thread_set[1] = new std::thread(RuntimeThreadFunc, ip, port);
-	}
-}
-
-int netq_send_message(lua_State* L) {
-	NetThreadQueue*  netq = lua_check_net_thread_queue(L, 1);
-	Buffer* buf = lua_check_buffer(L, 2);
-	int len = (int)lua_tointeger(L, 3);
-	std::string msg(buf->Peek(), len);
-	if (netq == &g_VscodeQueue) {
-		if(g_Mode == eMode_TCP)
-		{
-			if (g_VsCodeLoop) {
-				g_VsCodeLoop->RunTask([msg]() {
-					if (g_VscodeHandler && g_VscodeHandler->connected()) {
-						g_VscodeHandler->Send(msg);
-					}
-				});
-			}
-		}
-		else {
-			g_VscodeQueue.PushBack(NetThreadQueue::Write, msg.data(), msg.size());
+		while(!(g_RuntimeHandler && g_RuntimeHandler->connected())){
+			Sleep(10);	
 		}
 	}
-	else if (netq == &g_RuntimeQueue) {
-		if (g_RuntimeHandler&& g_RuntimeHandler->connected()) {
-			g_RuntimeLoop->RunTask([msg]() {
-				while (!g_RuntimeQueue.Empty(NetThreadQueue::Write))
-				{
-					ezio::Buffer& oldmsg = g_RuntimeQueue.Front(NetThreadQueue::Write);
-					g_RuntimeHandler->Send(oldmsg.ReadAllAsString());
-					g_RuntimeQueue.PopFront(NetThreadQueue::Write);
-				}
-				g_RuntimeHandler->Send(msg);
-			});
-		}
-		else {
-			g_RuntimeQueue.PushBack(NetThreadQueue::Write, msg.data(), msg.size());
-		}
-	}
-	
-	return 0;
 }
 
 bool is_stdio_mode()
@@ -279,50 +238,35 @@ bool is_stdio_mode()
 	return g_Mode == eMode_STDIO;
 }
 
-int  test_bug(lua_State* L)
-{
-	int res = 0;
-	while (!g_VscodeQueue.Empty(NetThreadQueue::Read))
-	{
-		ezio::Buffer& buf = g_VscodeQueue.Front(NetThreadQueue::Read);
-		std::string msg = buf.ReadAllAsString();
-		g_VscodeQueue.PopFront(NetThreadQueue::Read);
 
-		lua_getglobal(L, "dispatch_vscode_message");
-		lua_push_net_thread_queue(L, &g_VscodeQueue);
-		lua_pushstring(L, msg.c_str());
-		lua_push_net_thread_queue(L, &g_RuntimeQueue);
-
-		res = lua_pcall(L, 3, 0, 0);
-		_check_lua_error(L, res);
-	}
-
-	while (!g_RuntimeQueue.Empty(NetThreadQueue::Read))
-	{
-		ezio::Buffer& buf = g_RuntimeQueue.Front(NetThreadQueue::Read);
-		std::string msg = buf.ReadAllAsString();
-		g_RuntimeQueue.PopFront(NetThreadQueue::Read);
-
-		lua_getglobal(L, "dispatch_runtime_message");
-		lua_push_net_thread_queue(L, &g_RuntimeQueue);
-		lua_pushstring(L, msg.c_str());
-		lua_push_net_thread_queue(L, &g_VscodeQueue);
-
-		res = lua_pcall(L, 3, 0, 0);
-		_check_lua_error(L, res);
-	}
-	return 0;
-}
 void register_common_lua_functions(lua_State* L)
 { 
 	luaopen_cxlua(L);
-	script_system_register_luac_function(L, netq_send_message);
 	script_system_register_function(L, get_line_ending_in_c);
 	script_system_register_function(L, set_line_ending_in_c);
 	script_system_register_function(L, is_stdio_mode);
-	script_system_register_luac_function(L, test_bug);
+}
+void vscode_send_message(const char* msg){
+	if (g_VscodeHandler && g_VscodeHandler->connected()) {
+		printf("\nDA => VS:\n%s\n", msg);
+		g_VscodeHandler->Send(msg);
+	}
 }
 
+void runtime_send_message(const char* msg){
+	if (g_RuntimeHandler && g_RuntimeHandler->connected()) {
+		printf("\nDA => RT:\n%s\n", msg);
+		g_RuntimeHandler->Send(msg);
+	}
+}
+int fetch_vscode_netq(lua_State*L){
+	lua_push_net_thread_queue(L, &g_VscodeQueue);
+	return 1;
+}
+int fetch_runtime_netq(lua_State*L){
+	lua_push_net_thread_queue(L, &g_RuntimeQueue);
+	return 1;
+}
 int debugger_adapter_run(int port)
 {
 	ezio::IOServiceContext::Init();
@@ -337,46 +281,25 @@ int debugger_adapter_run(int port)
 		script_system_register_function(L, vscode_on_launch_cmd);
 		script_system_register_function(L, vscode_on_attach_cmd);
 		script_system_register_function(L, set_debugger_adapter_run);
+		script_system_register_function(L, is_debugger_adapter_run);
+		
 		script_system_register_function(L, dbg_trace);
+		script_system_register_function(L, vscode_send_message);
+		script_system_register_function(L, runtime_send_message);
+
+		script_system_register_luac_function(L, fetch_vscode_netq);
+		script_system_register_luac_function(L, fetch_runtime_netq);
+
+			
 		register_common_lua_functions(L);
 		luaopen_luadbg(L);
 
+		g_debugger_adapter_run = true;
 		int res = luaL_dofile(L, EXTENSION_DIR("main.lua").c_str());
 		_check_lua_error(L, res);
 
-		g_debugger_adapter_run = true;
-		while (g_debugger_adapter_run)
-		{
-			while (!g_VscodeQueue.Empty(NetThreadQueue::Read))
-			{
-				ezio::Buffer& buf = g_VscodeQueue.Front(NetThreadQueue::Read);
-				std::string msg = buf.ReadAllAsString();
-				g_VscodeQueue.PopFront(NetThreadQueue::Read);
-				
-				lua_getglobal(L, "dispatch_vscode_message");
-				lua_push_net_thread_queue(L, &g_VscodeQueue);
-				lua_pushstring(L, msg.c_str());
-				lua_push_net_thread_queue(L, &g_RuntimeQueue);
 
-				res = lua_pcall(L, 3, 0, 0);
-				_check_lua_error(L, res);
-			}
-
-			while (!g_RuntimeQueue.Empty(NetThreadQueue::Read))
-			{
-				ezio::Buffer& buf = g_RuntimeQueue.Front(NetThreadQueue::Read);
-				std::string msg = buf.ReadAllAsString();
-				g_RuntimeQueue.PopFront(NetThreadQueue::Read);
-
-				lua_getglobal(L, "dispatch_runtime_message");
-				lua_push_net_thread_queue(L, &g_RuntimeQueue);
-				lua_pushstring(L, msg.c_str());
-				lua_push_net_thread_queue(L, &g_VscodeQueue);
-
-				res = lua_pcall(L, 3, 0, 0);
-				_check_lua_error(L, res);
-			}
-		}
+		
 		lua_close(L);
 
 		for (auto* t : thread_set)
@@ -442,7 +365,6 @@ int debugger_adapter_run(int port)
 int main(int argc,char* argv[])
 {
 	handle_command_args(argc, argv);
-	init_default_cwd(argv[0]);
 	kbase::AtExitManager exit_manager;
 	debugger_adapter_init(argc, argv);
 	debugger_adapter_run(port);

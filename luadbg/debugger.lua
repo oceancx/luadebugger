@@ -40,22 +40,22 @@ local function utils_dump_table(t)
     end
 end
 
-
-local cjson = require 'cjson'
+local WORK_CWD=''
 local MAIN_THREAD_ID = 1
 
+local message_seq = 1
+
 function _final_send(js)
-    log_trace('Debugger-->finalsend')
+    log_trace(string.format("\nRT => DA:\n%s\n", js))
+    
     local buf = {}
     table.insert(buf,"Content-Length: "..js:len())
     table.insert(buf,"")
     table.insert(buf,js)
     local sent = table.concat(buf,luadbg_get_line_ending_in_c())
-    log_trace(sent)
     debugger_send_message(sent)
 end
 
-local message_seq = 1
 function _send_response( req, success)
     if not req then return end
     local resp = {}
@@ -66,7 +66,7 @@ function _send_response( req, success)
     resp.body = req.body 
     resp.seq = message_seq
     message_seq = message_seq + 1
-        _final_send(cjson.encode(resp))
+   _final_send(cjson.encode(resp))
 end
 
 function _send_event( ev, body)
@@ -261,7 +261,7 @@ local current_stack_frames = {}
 local current_local_vars = {}
 local current_up_vars = {}
 function debugger_handle_message_new(msg)
-    log_trace('debugger_handle_message_new',msg)
+    log_trace(string.format("\nRT <= DA:\n%s\n", msg))
     local req = cjson.decode(msg)
     if req.type ~= 'request' then return end
     local cmd = req.command 
@@ -271,7 +271,9 @@ function debugger_handle_message_new(msg)
         launch_req = req
     elseif cmd == "attach" then
         launch_req = req
-
+        if req.cwd then
+            WORK_CWD = req.cwd
+        end
     elseif cmd == "disconnect" then
         --{"command":"disconnect","arguments":{"restart":false},"type":"request","seq":93}
         _send_response(req)
@@ -427,7 +429,6 @@ function _SetBreakpoints( req)
     local args = req.arguments
     local path = args.source.path
     local name = args.source.name 
-
     path = format_path(path)
     breakpoints[path] = {{}}  -- clear bps
     for i,bp in ipairs(args.breakpoints) do
@@ -436,7 +437,7 @@ function _SetBreakpoints( req)
     debugger_verify_breakpoints()
     req.body = {}
     req.body.breakpoints = breakpoints[path]
-    _send_response( req)
+    _send_response(req)
 end 
 
 function debugger_hook(event, line)
@@ -473,7 +474,7 @@ function debugger_hook(event, line)
                 if msg ~= "" then
                     debugger_handle_message_new(msg)
                 else 
-                    test_bug()
+                    DA_in_break()
                     debugger_sleep(10)
                 end     
             end

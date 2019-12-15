@@ -67,13 +67,13 @@ void DebuggeeThreadFunc(int port)
 	g_RuntimeServerLoop = &loop;
 	SocketAddress addr(port);
 	TCPServer server(&loop, addr, "RuntimeServer");
-
+	 
 	server.set_on_connection([L](const TCPConnectionPtr& conn) {
 		g_DebugAdapterHandler = conn->connected() ? conn : nullptr;
 		lua_getglobal(L, "debuggee_on_connection");
 		lua_push_tcp_connection(L, conn);
 		lua_push_net_thread_queue(L, &g_DebugAdapterQueue);
-		int res = lua_pcall(L, 2, 0, 0);
+		int res = lua_pcall(L, 2, 0, 0); 
 		check_lua_error(L, res);
 	});
 	 
@@ -146,12 +146,10 @@ int debugger_send_message(lua_State* L)
 {   
 	const char* data = lua_tostring(L, 1);
 	std::string strmsg(data);
-	g_RuntimeServerLoop->RunTask([strmsg]() {
-		if (g_DebugAdapterHandler && g_DebugAdapterHandler->connected())
-		{
-			g_DebugAdapterHandler->Send(strmsg);
-		}
-	});
+	if (g_DebugAdapterHandler && g_DebugAdapterHandler->connected())
+	{
+		g_DebugAdapterHandler->Send(strmsg);
+	}
 	return 0; 
 }
 
@@ -160,7 +158,7 @@ bool debugger_is_connected()
 	return g_DebugAdapterHandler != nullptr && g_DebugAdapterHandler->connected();
 }
 
-LuaProxy* (*__proxy__)();
+LuaProxy* (*__proxy__)(); 
 LuaProxy* __lua_proxy__()
 {
 	return __proxy__();
