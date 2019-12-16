@@ -250,7 +250,7 @@ function DA_in_break()
 end
 
 function main()
-    -- luadbg_listen(9528)
+    luadbg_listen(9528)
     WORK_CWD = command_arg_get('cwd')
     while is_debugger_adapter_run() do
         local vs_netq = fetch_vscode_netq()
