@@ -20,7 +20,7 @@ local function utils_dump_table(t)
                 count = count + 1
                 table.insert(next_layer, v)
             else
-                log_trace(k,v)
+                print(k,v)
             end
         end    
     end
@@ -31,7 +31,7 @@ local MAIN_THREAD_ID = 1
 local message_seq = 1
 
 function _final_send(js)
-    log_trace(string.format("\nRT => DA:\n%s\n", js))
+    print(string.format("\nRT => DA:\n%s\n", js))
     
     local buf = {}
     table.insert(buf,"Content-Length: "..js:len())
@@ -123,17 +123,17 @@ end
 function debugger_fetch_stacks(start,lv)
     local stackFrames = {}
     local frameid_index = 0
-    -- log_trace('debugger_fetch_stacks',start , lv)
+    -- print('debugger_fetch_stacks',start , lv)
     for i = start,start+lv  do
         local info = debug.getinfo(i+3)
         if not info then break end
-        -- log_trace('fetch_stack',i)
+        -- print('fetch_stack',i)
         -- utils_dump_table(info)
         if info.source ~= '@__debugger__' then
             local src_path = dbg_format_lua_path(info.source)
             local name = src_path:match(string.format('%s(.+)',WORK_CWD))
             --  src_path:match('.*[\\/](.*)') 
-            -- log_trace('get stacks',  'i',i, ' frameID', frameId , ' src', name, ' line', info.currentline)
+            -- print('get stacks',  'i',i, ' frameID', frameId , ' src', name, ' line', info.currentline)
             
             local frame = {}
             frame.column = 0
@@ -164,7 +164,7 @@ function debugger_fetch_vars(frameId)
         -- get locals
         while true do
             local name, value = debug.getlocal(f, i)
-            -- log_trace('name',name,'value',value,'i',i,'f',f)
+            -- print('name',name,'value',value,'i',i,'f',f)
             if not name then break end
             if string.sub(name, 1, 1) ~= '(' then locals[name] = value end
             i = i + 1
@@ -183,7 +183,7 @@ function debugger_fetch_vars(frameId)
         local ups = {}
         while func do -- check for func as it may be nil for tail calls
             local name, value = debug.getupvalue(func, i)
-            -- log_trace('upname',name,'value',value,'i',i,'f',func)
+            -- print('upname',name,'value',value,'i',i,'f',func)
             if not name then break end
             ups[name] = value
             i = i + 1
@@ -203,7 +203,7 @@ function debugger_fetch_vars(frameId)
         utils_dump_table(info)
         if info.source ~= '@__debugger__' then
             count = count + 1
-            log_trace('get vars','cnt',count,  'i',i, ' frameID', frameId , ' src', name, ' line', info.currentline)
+            print('get vars','cnt',count,  'i',i, ' frameID', frameId , ' src', name, ' line', info.currentline)
 
             if count == frameId then
                 return vars(i)
@@ -217,20 +217,20 @@ end
 
 local ref_table = {}
 local table2ref= {}
-local currentId = 1
+local currentId = 0
 
 function encode_vars2ref(vars)
     if not vars or type(vars) ~= 'table' then return 0 end
+    table.insert(ref_table,vars)
+    currentId = #ref_table 
     table2ref[vars] = currentId
-    ref_table[currentId] = vars 
-    root_id = currentId
-    currentId = currentId + 1
+    local root_id = currentId
 
     for name,value in pairs(vars) do 
         if type(value) == 'table' then
+            table.insert(ref_table,vars)
+            currentId = #ref_table 
             table2ref[value] = currentId
-            ref_table[currentId] = v
-            currentId = currentId + 1
         end
     end    
 
@@ -243,7 +243,7 @@ local current_stack_frames = {}
 local current_local_vars = {}
 local current_up_vars = {}
 function debugger_handle_message_new(msg)
-    log_trace(string.format("\nRT <= DA:\n%s\n", msg))
+    print(string.format("\nRT <= DA:\n%s\n", msg))
     local req = cjson.decode(msg)
     if req.type ~= 'request' then return end
     local cmd = req.command 
@@ -320,17 +320,16 @@ function debugger_handle_message_new(msg)
         _send_response(req)
         current_stack_frames = stackFrames
     elseif cmd == "scopes" then
-        -- log_trace(msg)
+        -- print(msg)
         -- {"type":"request","arguments":{"frameId":1},"seq":290,"command":"scopes"}
         ref_table = {}
-        currentId = 1
+        currentId = 0
         table2ref = {}
-        ref_table_name = {}
         local frameId = req.arguments.frameId           
         current_local_vars, current_up_vars = debugger_fetch_vars(frameId)
-        -- log_trace('locals')
+        -- print('locals')
         -- utils_dump_table(current_local_vars)
-        -- log_trace('ups')
+        -- print('ups')
         -- utils_dump_table(current_up_vars)
         local root_local = encode_vars2ref(current_local_vars)
         local root_up = encode_vars2ref(current_up_vars)
@@ -349,8 +348,8 @@ function debugger_handle_message_new(msg)
         local variables = {}
         for k,v in pairs(vars) do 
             local variable = {}
-            log_trace('k',k,'v',v,'val',val,'valstr',valstr)
-            variable.name = k
+            print('k',k,'v',v,'val')
+            variable.name = tostring(k)
             variable.type = type(v)
             variable.value = tostring(v)
             if variable.type == 'table' then
@@ -439,14 +438,14 @@ function debugger_hook(event, line)
         local info = debug.getinfo(2)   --;utils_dump_table(info)
         local file = info.source
         file = dbg_format_lua_path(file)
-        -- log_trace(file..':'..line)
+        -- print(file..':'..line)
         if step_into or (step_over and stack_level <= step_level) or has_breakpoint(file,line) then
-            log_trace(file..':'..line,'step_into', step_into,'step_over',(step_over and stack_level <= step_level),'has_bp',has_breakpoint(file,line))
+            print(file..':'..line,'step_into', step_into,'step_over',(step_over and stack_level <= step_level),'has_bp',has_breakpoint(file,line))
             if step_into then
-                -- log_trace('step_into' ,'stack_level:'..stack_level)
+                -- print('step_into' ,'stack_level:'..stack_level)
                 _send_event( 'stopped', { reason='step', threadId = MAIN_THREAD_ID })
             elseif (step_over and step_level <= stack_level) then
-                -- log_trace('step_over', 'step_level:'..step_level, 'stack_level:'..stack_level)
+                -- print('step_over', 'step_level:'..step_level, 'stack_level:'..stack_level)
                 _send_event( 'stopped', { reason='step', threadId = MAIN_THREAD_ID })
             else
                 _send_event( 'stopped', { reason='breakpoint', threadId = MAIN_THREAD_ID })
