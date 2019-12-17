@@ -19,7 +19,7 @@
 #include "luadbg.inl"
 #include "lua_bind.h"
 #include "cxlua.h"
-
+ 
 using namespace ezio;
     
      
@@ -144,11 +144,11 @@ const char* debugger_fetch_message()
    
 int debugger_send_message(lua_State* L)
 {   
-	const char* data = lua_tostring(L, 1);
-	std::string strmsg(data);
 	if (g_DebugAdapterHandler && g_DebugAdapterHandler->connected())
 	{
-		g_DebugAdapterHandler->Send(strmsg);
+		size_t len = 0;
+		const char* data = luaL_tolstring(L, 1,&len);
+		g_DebugAdapterHandler->Send({ data, len });
 	}
 	return 0; 
 }
@@ -183,7 +183,7 @@ LUADBGAPI int _luaopen_luadbg(LuaProxy* (*proxy)(), lua_State* L)
 
 	script_system_register_function(L, luadbg_get_line_ending_in_c);
 	return 1;
-}
+} 
 #ifdef __cplusplus
 }
 #endif

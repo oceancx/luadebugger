@@ -260,7 +260,7 @@ void register_common_lua_functions(lua_State* L)
 void vscode_send_message(const char* msg){
 	if (g_VscodeHandler && g_VscodeHandler->connected()) {
 		printf("\nDA => VS:\n%s\n", msg);
-		g_VscodeHandler->Send(msg);
+		g_VscodeHandler->Send({msg,strlen(msg)});
 	}else{
 		g_VscodeQueue.PushBack(NetThreadQueue::Write, msg,strlen(msg));		
 	}
@@ -269,7 +269,7 @@ void vscode_send_message(const char* msg){
 void runtime_send_message(const char* msg){
 	if (g_RuntimeHandler && g_RuntimeHandler->connected()) {
 		printf("\nDA => RT:\n%s\n", msg);
-		g_RuntimeHandler->Send(msg);
+		g_RuntimeHandler->Send({msg,strlen(msg)});
 	}
 	else {
 		g_RuntimeQueue.PushBack(NetThreadQueue::Write, msg, strlen(msg));

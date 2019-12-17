@@ -71,7 +71,7 @@ local step_level = 0
 local stack_level = 0
 local HOOKMASK = 'lcr'
 
-function format_lua_path(path)
+function dbg_format_lua_path(path)
     if string.find(path, '@') == 1 then
         path = string.sub(path, 2)
     end
@@ -93,13 +93,11 @@ end
 
 function has_breakpoint(file, line)
     for path,bps in pairs(breakpoints) do
-        
-            for i,bp in ipairs(bps) do
-                if bp.line == line then
-                    return true
-                end
+        for i,bp in ipairs(bps) do
+            if bp.line == line then
+                return true
             end
-        
+        end
     end
     return false
 end
@@ -131,7 +129,7 @@ function debugger_fetch_stacks(start,lv)
         -- log_trace('fetch_stack',i)
         -- utils_dump_table(info)
         if info.source ~= '@__debugger__' then
-            local src_path = format_lua_path(info.source)
+            local src_path = dbg_format_lua_path(info.source)
             local name = src_path:match(string.format('%s(.+)',WORK_CWD))
             --  src_path:match('.*[\\/](.*)') 
             -- log_trace('get stacks',  'i',i, ' frameID', frameId , ' src', name, ' line', info.currentline)
@@ -199,7 +197,7 @@ function debugger_fetch_vars(frameId)
         if not info then break end
         
         local src_path = info.source
-        src_path = format_lua_path(src_path)
+        src_path = dbg_format_lua_path(src_path)
         local name = src_path:match(string.format('%s(.+)',WORK_CWD))
         utils_dump_table(info)
         if info.source ~= '@__debugger__' then
@@ -439,7 +437,7 @@ function debugger_hook(event, line)
         end
         local info = debug.getinfo(2)   --;utils_dump_table(info)
         local file = info.source
-        file = format_lua_path(file)
+        file = dbg_format_lua_path(file)
         if step_into or (step_over and stack_level <= step_level) or has_breakpoint(file,line) then
             if step_into then
                 -- log_trace('step_into' ,'stack_level:'..stack_level)
