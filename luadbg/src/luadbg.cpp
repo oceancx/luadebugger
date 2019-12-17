@@ -22,11 +22,11 @@
  
 using namespace ezio;
     
-     
+      
 std::string LUADBG_LINES_ENDING = "";
 int debugger_send_message(lua_State* L);
 void luadbg_set_line_ending_in_c(const char* le)
-{ 
+{   
 	LUADBG_LINES_ENDING = le;
 }
 const char* luadbg_get_line_ending_in_c()
@@ -95,12 +95,12 @@ int luadbg_listen(lua_State* L)
 	int port = (int)lua_tointeger(L, 1);
 	if (port > 0)
 	{
+		debuggee_thread = new std::thread(DebuggeeThreadFunc, port);
 		int res = luaL_loadbuffer(L, debugger_code, strlen(debugger_code), "@__debugger__");
 		check_lua_error(L, res);
 		lua_pushstring(L, "debugger");
 		res = lua_pcall(L, 1, LUA_MULTRET, 0);
 		check_lua_error(L, res);
-		debuggee_thread = new std::thread(DebuggeeThreadFunc, port);
 	}
 	printf("luadbg_listen %d\n", port);
 	return 0;
@@ -132,7 +132,7 @@ void debugger_sleep(int s)
 const char* debugger_fetch_message()
 {    
 	if (!g_DebugAdapterQueue.Empty(NetThreadQueue::Read))
-	{ 
+	{  
 		static std::string msgstr;
 		auto& msg = g_DebugAdapterQueue.Front(NetThreadQueue::Read);
 		msgstr = std::string(msg.Peek(), msg.readable_size());
@@ -145,14 +145,14 @@ const char* debugger_fetch_message()
 int debugger_send_message(lua_State* L)
 {   
 	if (g_DebugAdapterHandler && g_DebugAdapterHandler->connected())
-	{
+	{ 
 		size_t len = 0;
 		const char* data = luaL_tolstring(L, 1,&len);
 		g_DebugAdapterHandler->Send({ data, len });
-	}
+	}  
 	return 0; 
 }
-
+ 
 bool debugger_is_connected()
 {
 	return g_DebugAdapterHandler != nullptr && g_DebugAdapterHandler->connected();

@@ -92,8 +92,8 @@ function dbg_format_lua_path(path)
 end
 
 function has_breakpoint(file, line)
-    for path,bps in pairs(breakpoints) do
-        for i,bp in ipairs(bps) do
+    if breakpoints[file] then
+        for i,bp in ipairs(breakpoints[file]) do
             if bp.line == line then
                 return true
             end
@@ -123,6 +123,7 @@ end
 function debugger_fetch_stacks(start,lv)
     local stackFrames = {}
     local frameid_index = 0
+    -- log_trace('debugger_fetch_stacks',start , lv)
     for i = start,start+lv  do
         local info = debug.getinfo(i+3)
         if not info then break end
@@ -267,9 +268,9 @@ function debugger_handle_message_new(msg)
     elseif cmd == "configurationDone" then
         if launch_req then
             _send_response(launch_req)
-            _send_event( 'stopped', { reason='entry', threadId = MAIN_THREAD_ID })
-            _send_response( req)
-            step_into = true        --stop on entry
+            -- _send_event('stopped', { reason='entry', threadId = MAIN_THREAD_ID })
+            -- step_into = true        --stop on entry
+            _send_response(req)
         end
     elseif cmd == "continue" then
         -- assert(breaked_in_hook)
@@ -438,7 +439,9 @@ function debugger_hook(event, line)
         local info = debug.getinfo(2)   --;utils_dump_table(info)
         local file = info.source
         file = dbg_format_lua_path(file)
+        -- log_trace(file..':'..line)
         if step_into or (step_over and stack_level <= step_level) or has_breakpoint(file,line) then
+            log_trace(file..':'..line,'step_into', step_into,'step_over',(step_over and stack_level <= step_level),'has_bp',has_breakpoint(file,line))
             if step_into then
                 -- log_trace('step_into' ,'stack_level:'..stack_level)
                 _send_event( 'stopped', { reason='step', threadId = MAIN_THREAD_ID })

@@ -178,15 +178,11 @@ function dispatch_vscode_message(js)
     end
 end
 
-
-
-
 local parsed_len = -1
 local readstate = 1
 function stdio_on_message(buf,netq, runtime_netq)
     while buf:readable_size() > 0 do
         local preview = buf:Preview(buf:readable_size())
-        -- print('preview..' ..preview)
         if readstate == 1 then
             local s,e = preview:find("\n")
             if s then
@@ -199,7 +195,6 @@ function stdio_on_message(buf,netq, runtime_netq)
                 local match = line:gmatch("Content%-Length: (%d*)")()
                 if tonumber(match) then
                     parsed_len = tonumber(match)
-                    -- dbg_trace("parsed_len "..tostring(parsed_len))
                     readstate = readstate + 1
                 else
                     break
@@ -211,7 +206,6 @@ function stdio_on_message(buf,netq, runtime_netq)
             local s,e = preview:find("\n")
             if s then
                 local line = buf:ReadAsString(e)
-                -- dbg_trace(line)
                 readstate = readstate+1
             else
                 break
@@ -219,9 +213,7 @@ function stdio_on_message(buf,netq, runtime_netq)
         elseif readstate == 3 then
             if buf:readable_size() >= parsed_len then
                 local js  = buf:ReadAsString(parsed_len)
-                -- dbg_trace('\n----stdio read-----\n'..js)
                 readstate = 1
-                -- netq:push_back(0,js)
                 dispatch_vscode_message(js)
             else
                 break
@@ -250,20 +242,30 @@ function DA_in_break()
 end
 
 function main()
-    luadbg_listen(9528)
+    -- luadbg_listen(9528)
     WORK_CWD = command_arg_get('cwd')
-    while is_debugger_adapter_run() do
-        local vs_netq = fetch_vscode_netq()
-        while not vs_netq:empty(0) do
-            local msg = vs_netq:front_as_string(0)
-            vs_netq:pop_front(0)
-            dispatch_vscode_message(msg)
+    if is_stdio_mode() then
+        local buf = ezio_buffer_create()
+        while true do
+            local c = io.read(1)
+            if not c or not is_debugger_adapter_run() then break end
+            buf:WriteByte(string.byte(c))
+            stdio_on_message(buf,fetch_vscode_netq(),fetch_runtime_netq())
         end
-        local rt_netq = fetch_runtime_netq()
-        while not rt_netq:empty(0) do
-            local msg = rt_netq:front_as_string(0)
-            rt_netq:pop_front(0)
-            dispatch_runtime_message(msg)
+    else
+        while is_debugger_adapter_run() do
+            local vs_netq = fetch_vscode_netq()
+            while not vs_netq:empty(0) do
+                local msg = vs_netq:front_as_string(0)
+                vs_netq:pop_front(0)
+                dispatch_vscode_message(msg)
+            end
+            local rt_netq = fetch_runtime_netq()
+            while not rt_netq:empty(0) do
+                local msg = rt_netq:front_as_string(0)
+                rt_netq:pop_front(0)
+                dispatch_runtime_message(msg)
+            end
         end
     end
 end
