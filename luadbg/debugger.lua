@@ -254,7 +254,7 @@ function debugger_handle_message_new(msg)
     elseif cmd == "attach" then
         launch_req = req
         if req.arguments and req.arguments.cwd then
-            WORK_CWD = req.arguments.cwd
+            WORK_CWD = dbg_format_lua_path(req.arguments.cwd) 
         end
     elseif cmd == "disconnect" then
         --{"command":"disconnect","arguments":{"restart":false},"type":"request","seq":93}
@@ -424,16 +424,33 @@ function _SetBreakpoints(req)
     _send_response(req)
 end 
 
-function debugger_hook(event, line)
+
+function luadbg_loop_internal()
     if not debugger_is_connected() then return end
+    while true do
+        local msg = debugger_fetch_message()
+        if msg ~= "" then
+            debugger_handle_message_new(msg)
+        else
+            break
+        end
+    end
+end
+
+local loop_msg_in_hook = true
+function luadbg_loop()
+    loop_msg_in_hook = false
+    luadbg_loop_internal()
+end
+
+function debugger_hook(event, line)
     if event == 'call' then
         stack_level = stack_level + 1
     elseif event == 'return' or event  == 'tail return' then
         stack_level = stack_level - 1
     elseif event == 'line' then    
-        local msg = debugger_fetch_message()
-        if msg ~= "" then
-            debugger_handle_message_new(msg)
+        if loop_msg_in_hook then
+            luadbg_loop_internal()
         end
         local info = debug.getinfo(2)   --;utils_dump_table(info)
         local file = info.source
@@ -456,7 +473,7 @@ function debugger_hook(event, line)
 
             while breaked_in_hook do
                 if not debugger_is_connected() then breaked_in_hook=false;break end
-                msg = debugger_fetch_message()
+                local msg = debugger_fetch_message()
                 if msg ~= "" then
                     debugger_handle_message_new(msg)
                 else 
