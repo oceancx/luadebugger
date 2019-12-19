@@ -91,7 +91,8 @@ function dbg_format_lua_path(path)
     return path
 end
 
-function has_breakpoint(file, line)
+function has_breakpoint(source, line)
+    local file = dbg_format_lua_path(source)
     if breakpoints[file] then
         for i,bp in ipairs(breakpoints[file]) do
             if bp.line == line then
@@ -123,18 +124,10 @@ end
 function debugger_fetch_stacks(start,lv)
     local stackFrames = {}
     local frameid_index = 0
-    -- print('debugger_fetch_stacks',start , lv)
     for i = start,start+lv  do
         local info = debug.getinfo(i+3)
         if not info then break end
-        -- print('fetch_stack',i)
-        -- utils_dump_table(info)
         if info.source ~= '@__debugger__' then
-            local src_path = dbg_format_lua_path(info.source)
-            local name = src_path:match(string.format('%s(.+)',WORK_CWD))
-            --  src_path:match('.*[\\/](.*)') 
-            -- print('get stacks',  'i',i, ' frameID', frameId , ' src', name, ' line', info.currentline)
-            
             local frame = {}
             frame.column = 0
             frame.id = #stackFrames + 1
@@ -142,8 +135,8 @@ function debugger_fetch_stacks(start,lv)
             frame.name = info.name or ''
             frame.source = {
                 adapterData = info.what,
-                path = src_path,
-                name = name,
+                path = dbg_format_lua_path(info.source),
+                name = info.source:match('.+[\\/](.+)'),
                 sourceReference = 0
             }
             table.insert(stackFrames, frame)
@@ -156,7 +149,6 @@ function debugger_fetch_vars(frameId)
     frameId = math.tointeger(frameId)
     local function vars(f)
         local info = debug.getinfo(f)
-        -- utils_dump_table(info)
         if not info then return end
         local func = info.func
         local i = 1
@@ -183,7 +175,6 @@ function debugger_fetch_vars(frameId)
         local ups = {}
         while func do -- check for func as it may be nil for tail calls
             local name, value = debug.getupvalue(func, i)
-            -- print('upname',name,'value',value,'i',i,'f',func)
             if not name then break end
             ups[name] = value
             i = i + 1
@@ -196,15 +187,8 @@ function debugger_fetch_vars(frameId)
     for i = 3 , 30 do 
         local info = debug.getinfo(i)
         if not info then break end
-        
-        local src_path = info.source
-        src_path = dbg_format_lua_path(src_path)
-        local name = src_path:match(string.format('%s(.+)',WORK_CWD))
-        utils_dump_table(info)
         if info.source ~= '@__debugger__' then
             count = count + 1
-            print('get vars','cnt',count,  'i',i, ' frameID', frameId , ' src', name, ' line', info.currentline)
-
             if count == frameId then
                 return vars(i)
             end
@@ -320,17 +304,12 @@ function debugger_handle_message_new(msg)
         _send_response(req)
         current_stack_frames = stackFrames
     elseif cmd == "scopes" then
-        -- print(msg)
         -- {"type":"request","arguments":{"frameId":1},"seq":290,"command":"scopes"}
         ref_table = {}
         currentId = 0
         table2ref = {}
         local frameId = req.arguments.frameId           
         current_local_vars, current_up_vars = debugger_fetch_vars(frameId)
-        -- print('locals')
-        -- utils_dump_table(current_local_vars)
-        -- print('ups')
-        -- utils_dump_table(current_up_vars)
         local root_local = encode_vars2ref(current_local_vars)
         local root_up = encode_vars2ref(current_up_vars)
         req.body = {
@@ -354,8 +333,6 @@ function debugger_handle_message_new(msg)
             variable.value = tostring(v)
             if variable.type == 'table' then
                 variable.variablesReference = encode_vars2ref(v)
-            -- else
-            --     variable.variablesReference = 0
             end
             table.insert(variables,variable)
         end
@@ -414,7 +391,7 @@ function _SetBreakpoints(req)
     local path = args.source.path
     local name = args.source.name 
     
-    breakpoints[path] = {}  -- clear bps
+    breakpoints[path] = {}  
     for i,bp in ipairs(args.breakpoints) do
         table.insert(breakpoints[path], { line = bp.line, verified = false, id = 0})
     end
@@ -452,17 +429,11 @@ function debugger_hook(event, line)
         if loop_msg_in_hook then
             luadbg_loop_internal()
         end
-        local info = debug.getinfo(2)   --;utils_dump_table(info)
-        local file = info.source
-        file = dbg_format_lua_path(file)
-        -- print(file..':'..line)
-        if step_into or (step_over and stack_level <= step_level) or has_breakpoint(file,line) then
-            print(file..':'..line,'step_into', step_into,'step_over',(step_over and stack_level <= step_level),'has_bp',has_breakpoint(file,line))
+        local info = debug.getinfo(2)    
+        if step_into or (step_over and stack_level <= step_level) or has_breakpoint(info.source,line) then
             if step_into then
-                -- print('step_into' ,'stack_level:'..stack_level)
                 _send_event( 'stopped', { reason='step', threadId = MAIN_THREAD_ID })
             elseif (step_over and step_level <= stack_level) then
-                -- print('step_over', 'step_level:'..step_level, 'stack_level:'..stack_level)
                 _send_event( 'stopped', { reason='step', threadId = MAIN_THREAD_ID })
             else
                 _send_event( 'stopped', { reason='breakpoint', threadId = MAIN_THREAD_ID })
