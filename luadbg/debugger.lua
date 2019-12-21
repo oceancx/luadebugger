@@ -1,8 +1,12 @@
-print_log_trace = true
-local function log_trace(...)
+print_log_trace = false
+function luadbg_log_trace(...)
     if print_log_trace then
         print(...)
     end
+end
+
+function luadbg_enable_log(enable)
+    print_log_trace = enable
 end
 
 local function utils_dump_table(t)
@@ -20,7 +24,7 @@ local function utils_dump_table(t)
                 count = count + 1
                 table.insert(next_layer, v)
             else
-                print(k,v)
+                luadbg_log_trace(k,v)
             end
         end    
     end
@@ -31,7 +35,7 @@ local MAIN_THREAD_ID = 1
 local message_seq = 1
 
 function _final_send(js)
-    print(string.format("\nRT => DA:\n%s\n", js))
+    luadbg_log_trace(string.format("\nRT => DA:\n%s\n", js))
     
     local buf = {}
     table.insert(buf,"Content-Length: "..js:len())
@@ -156,7 +160,7 @@ function debugger_fetch_vars(frameId)
         -- get locals
         while true do
             local name, value = debug.getlocal(f, i)
-            -- print('name',name,'value',value,'i',i,'f',f)
+            -- luadbg_log_trace('name',name,'value',value,'i',i,'f',f)
             if not name then break end
             if string.sub(name, 1, 1) ~= '(' then locals[name] = value end
             i = i + 1
@@ -227,7 +231,7 @@ local current_stack_frames = {}
 local current_local_vars = {}
 local current_up_vars = {}
 function debugger_handle_message_new(msg)
-    print(string.format("\nRT <= DA:\n%s\n", msg))
+    luadbg_log_trace(string.format("\nRT <= DA:\n%s\n", msg))
     local req = cjson.decode(msg)
     if req.type ~= 'request' then return end
     local cmd = req.command 
@@ -327,7 +331,7 @@ function debugger_handle_message_new(msg)
         local variables = {}
         for k,v in pairs(vars) do 
             local variable = {}
-            print('k',k,'v',v,'val')
+            luadbg_log_trace('k',k,'v',v,'val')
             variable.name = tostring(k)
             variable.type = type(v)
             variable.value = tostring(v)
