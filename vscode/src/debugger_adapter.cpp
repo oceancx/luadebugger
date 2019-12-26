@@ -44,13 +44,6 @@ std::string EXTENSION_DIR(const char* dir)
 EDebugAdapterLaunchMode g_LaunchMode;
 EDebugProtocolMode g_Mode;
 
-void debugger_adapter_init(int argc, char* argv[])
-{
-	init_default_cwd(argv[0]);
-	port = command_arg_opt_int("port", 0);
-	CWD = command_arg_opt_str("cwd", get_default_cwd().c_str());
-	std::cerr << "workdir = " << CWD << "   port = " << port << std::endl;
-}
 
 std::string LINES_ENDING = "";
 void set_line_ending_in_c(const char* le)
@@ -303,13 +296,10 @@ int fetch_runtime_netq(lua_State*L) {
 }
 void register_common_lua_functions(lua_State* L)
 { 
-	luaopen_cxlua(L);
 	script_system_register_function(L, vscode_on_launch_cmd);
 	script_system_register_function(L, vscode_on_attach_cmd);
 	script_system_register_function(L, set_debugger_adapter_run);
 	script_system_register_function(L, is_debugger_adapter_run);
-	script_system_register_function(L, get_line_ending_in_c);
-	script_system_register_function(L, set_line_ending_in_c);
 	script_system_register_function(L, is_stdio_mode);
 	script_system_register_function(L, vscode_send_message);
 	script_system_register_function(L, runtime_send_message);
@@ -326,7 +316,7 @@ int debugger_adapter_run(int port)
 	thread_set.resize(2);
 	if (port > 0)
 		g_Mode = eMode_TCP;
-	else
+	else 
 		g_Mode = eMode_STDIO;
 
 	if (g_Mode == eMode_TCP)
@@ -336,8 +326,11 @@ int debugger_adapter_run(int port)
 		
 	lua_State* L = luaL_newstate();
 	luaL_openlibs(L);
-	register_common_lua_functions(L);
+	luaopen_cxlua(L);
+	script_system_register_function(L, get_line_ending_in_c);
+	script_system_register_function(L, set_line_ending_in_c);
 
+	//register_common_lua_functions(L);
 	g_debugger_adapter_run = true;
 	int res = luaL_dofile(L, EXTENSION_DIR("main.lua").c_str());
 	_check_lua_error(L, res);
@@ -354,12 +347,36 @@ int debugger_adapter_run(int port)
 	thread_set.clear();
 	return 0;
 }
-
+void sleepms(int ms) {
+	Sleep(ms);
+}
 int main(int argc,char* argv[])
 {
 	handle_command_args(argc, argv);
 	kbase::AtExitManager exit_manager;
-	debugger_adapter_init(argc, argv);
-	debugger_adapter_run(port);
+	
+	init_default_cwd(argv[0]);
+	port = command_arg_opt_int("port", 0);
+	CWD = command_arg_opt_str("cwd", get_default_cwd().c_str());
+	std::cerr << "workdir = " << CWD << "   port = " << port << std::endl;
+	
+
+	ezio::IOServiceContext::Init();
+	lua_State* L = luaL_newstate();
+	luaL_openlibs(L);
+	luaopen_cxlua(L); 
+	script_system_register_function(L, get_line_ending_in_c);
+	script_system_register_function(L, set_line_ending_in_c);
+
+	script_system_register_function(L, sleepms);
+
+	g_debugger_adapter_run = true;
+	std::string s = EXTENSION_DIR("main.lua");
+	int res = luaL_dofile(L, s.c_str());
+	_check_lua_error(L, res);
+
+	lua_close(L);
+
+	//debugger_adapter_run(port);
 	return 0;
 }
