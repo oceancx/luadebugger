@@ -40,8 +40,9 @@
             "request": "launch",
             "ip": "127.0.0.1",
             "port": 9527,
-            "launchcmd": ".exe",
-            "cwd":""
+            "program": ".exe",
+            "args": [],
+            "cwd":"${workspaceFolder}\\"
           },
           {
             "name": "Attach",
@@ -49,14 +50,14 @@
             "request": "attach",
             "ip": "127.0.0.1",
             "port": 9527,
-            "cwd":""
+            "cwd":"${workspaceFolder}\\"
           }
         ],
         "configurationAttributes": {
           "launch": {
-            "required": [ "launchcmd", "port" ],
+            "required": [ "ip", "port" ],
             "properties": {
-              "launchcmd": {
+              "program": {
                 "type": "string"
               },
               "ip": {
@@ -64,6 +65,9 @@
               },
               "port": {
                 "type": "integer"
+              },
+              "cwd" :{
+                "type" : "string"
               }
             }
           },

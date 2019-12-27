@@ -14,7 +14,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Header Files"  FILES $
 
 add_executable(vsdbgadapter
   ${SOURCES_HEADER_RPI}
-  src/debugger_adapter.cpp
+  src/main.cpp
 )
 
 target_include_directories(vsdbgadapter

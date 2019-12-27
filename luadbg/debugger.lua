@@ -256,8 +256,10 @@ function debugger_handle_message_new(msg)
     elseif cmd == "configurationDone" then
         if launch_req then
             _send_response(launch_req)
-            -- _send_event('stopped', { reason='entry', threadId = MAIN_THREAD_ID })
-            -- step_into = true        --stop on entry
+            if launch_req.stopOnEntry then
+                _send_event('stopped', { reason='entry', threadId = MAIN_THREAD_ID })
+                step_into = true        --stop on entry
+            end
             _send_response(req)
         end
     elseif cmd == "continue" then
