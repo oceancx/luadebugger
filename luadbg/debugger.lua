@@ -202,11 +202,9 @@ function debugger_fetch_vars(frameId)
     return {},{}
 end
 
-
 local ref_table = {}
 local table2ref= {}
 local currentId = 0
-
 function encode_vars2ref(vars)
     if not vars or type(vars) ~= 'table' then return 0 end
     table.insert(ref_table,vars)
@@ -221,10 +219,8 @@ function encode_vars2ref(vars)
             table2ref[value] = currentId
         end
     end    
-
     return root_id
 end
-
 
 local breaked_in_hook = false
 local current_stack_frames = {}
@@ -454,9 +450,6 @@ function debugger_hook(event, line)
                 if msg ~= "" then
                     debugger_handle_message_new(msg)
                 else 
-                    if DA_in_break then
-                        DA_in_break()
-                    end
                     debugger_sleep(10)
                 end     
             end
