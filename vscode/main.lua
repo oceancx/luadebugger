@@ -1,21 +1,44 @@
 
+
+
 local WORK_CWD
 local PORT
 local event_loop
-local vscode_netq = net_thread_queue_create()
 local runtime_netq = net_thread_queue_create()
 local vscode_handler 
 local runtime_handler 
 local runtime_client
 
-function create_on_message_parser(cb)
+function luadbg_is_stdio_mode()
+    return PORT==0  
+end
+
+-- Content-Length: 312
+
+-- {"command":"initialize","arguments":{"clientID":"vscode","clientName":"Visual Studio Code","adapterID":"cxlua","pathFormat":"path","linesStartAt1":true,"columnsStartAt1":true,"supportsVariableType":true,"supportsVariablePaging":true,"supportsRunInTerminalRequest":true,"locale":"zh-cn"},"type":"request","seq":1}
+
+log_trace = function(...)
+    if luadbg_is_stdio_mode() then
+        local path = get_default_cwd()..'dbg.log'
+        local file = io.open(path,'a+')
+        local args = {...}
+        for i,v in ipairs(args) do
+            file:write(v..'\t')
+        end
+        file:write('\n')
+        file:close()
+    else
+        print(...)
+    end
+end
+
+function create_on_message_parser()
     local parsed_len = -1
     local readstate = 1
     local LINE_ENDING = nil
     return function(conn,buf,netq)
         while buf:readable_size() > 0 do
             local preview = buf:Preview(buf:readable_size())
-            print(preview)
             if readstate == 1 then
                 local s,e = preview:find("\n")
                 if s then
@@ -48,7 +71,6 @@ function create_on_message_parser(cb)
                     netq:push_back(0,buf,parsed_len)
                     buf:Consume(parsed_len)
                     readstate = 1
-                    -- coroutine.yield()
                 else
                     break
                 end
@@ -64,14 +86,18 @@ function vscode_on_attach_cmd(ip, port)
     if not runtime_handler then
         runtime_client = ez_tcp_client_create(event_loop, ip, port, 'Runtime')
         runtime_client:set_on_connection(function(conn)
-            print('[runtime]' ..conn:tohostport().. ' ' ..(conn:connected() and 'true' or 'false'))
+            log_trace('[runtime]' ..conn:tohostport().. ' ' ..(conn:connected() and 'true' or 'false'))
             if conn:connected() then
                 runtime_handler = conn
             else
                 runtime_handler = nil
+                if luadbg_is_stdio_mode() then
+                    os.exit()
+                end
             end
         end)
         runtime_client:set_on_message(function(conn, buf, ts)
+            log_trace('runtime_client on message')
             runtime_parser(conn,buf,runtime_netq)
         end)
 
@@ -80,44 +106,25 @@ function vscode_on_attach_cmd(ip, port)
     while not runtime_handler do
         sleepms(10)
     end
-    print('connected ')
+    log_trace('connected ')
 end
-
-function luadbg_is_stdio_mode()
-    return PORT==0 and false
-end
-
-old_print = print
--- old_print('log', get_default_cwd()..'dbg.log')
-print = function(...)
-    if luadbg_is_stdio_mode() and false then
-        local path = get_default_cwd()..'dbg.log'
-        local file = io.open(path,'a+')
-        local args = {...}
-        for i,v in ipairs(args) do
-            file:write(v..'\t')
-        end
-        file:write('\n')
-        file:close()
-    else
-        old_print(...)
-    end
-end
-
-
 
 
 
 local message_seq = 1
 function vscode_final_send(js)
-    print('vscode_final_send')
-    if not vscode_handler then return end
+    log_trace('vscode_final_send', js)
     local buf = {}
     table.insert(buf,"Content-Length: "..js:len())
     table.insert(buf,"")
     table.insert(buf,js)
     local sent = table.concat(buf,get_line_ending_in_c())
-    vscode_handler:send(sent)
+    if luadbg_is_stdio_mode() then
+        print(sent)
+    else
+        if not vscode_handler then return end
+        vscode_handler:send(sent)
+    end
 end
 
 function vscode_send_response(req)
@@ -147,7 +154,8 @@ end
 
 
 function runtime_final_send(js)
-    print('runtime_final_send', js)
+    log_trace('runtime_final_send', js)
+
     if not runtime_handler then return end
     local buf = {}
     table.insert(buf,"Content-Length: "..js:len())
@@ -158,7 +166,7 @@ function runtime_final_send(js)
 end
 
 function dispatch_runtime_message(js)
-    print(string.format("\nDA <= RT:\n%s\n", js))
+    log_trace(string.format("\nDA <= RT:\n%s\n", js))
     vscode_final_send(js)
 end
 
@@ -188,7 +196,7 @@ end
 
 
 function dispatch_vscode_message(js)
-    print(string.format("\nDA <= VS:\n%s\n", js))
+    log_trace(string.format("\nDA <= VS:\n%s\n", js))
 
     local req = cjson.decode(js)
      if req.type == 'request' then
@@ -321,20 +329,19 @@ end
 -- function DA_in_break()
 --     local vs_netq = fetch_vscode_netq()
 --     while not vs_netq:empty(0) do
---         print('DA_in_break vs_netq')
+--         log_trace('DA_in_break vs_netq')
 --         local msg = vs_netq:front_as_string(0)
 --         vs_netq:pop_front(0)
 --         dispatch_vscode_message(msg)
 --     end
 --     local rt_netq = fetch_runtime_netq()
 --     while not rt_netq:empty(0) do
---         print('DA_in_break rt_netq')
+--         log_trace('DA_in_break rt_netq')
 --         local msg = rt_netq:front_as_string(0)
 --         rt_netq:pop_front(0)
 --         dispatch_runtime_message(msg)
 --     end
 -- end
-
 
 local stdio_parser = create_on_message_parser()
 local stdco = coroutine.create(function()
@@ -342,14 +349,13 @@ local stdco = coroutine.create(function()
     while true do
         local c = io.read(1)
         if not c then break end
-        print(c)
         buf:WriteByte(string.byte(c))
-        stdio_parser(nil,buf,vscode_netq)
+        stdio_parser(nil,buf,vscode_netq,true)
     end
 end)
 
 function cx_server_on_connect(conn)
-    print('[vscode]' ..conn:tohostport().. ' ' ..(conn:connected() and 'true' or 'false'))
+    log_trace('[vscode]' ..conn:tohostport().. ' ' ..(conn:connected() and 'true' or 'false'))
     if conn:connected() then
         vscode_handler = conn
     else
@@ -360,64 +366,36 @@ end
 do
     WORK_CWD = command_arg_opt_str('cwd',get_default_cwd())
     PORT =  command_arg_opt_int('port',0)
-    PORT = 4711
-    print(WORK_CWD, PORT)
+    log_trace(WORK_CWD, PORT)
 
     event_loop = ez_event_loop_create()
     if luadbg_is_stdio_mode() then
-        print('luadbg_is_stdio_mode')
-
-        event_loop:RunTaskEvery(function()
-            print('RunTaskEvery')
-            coroutine.resume(stdco)
-            
-            while not vscode_netq:empty(0) do
-                local msg = vscode_netq:front_as_string(0)
-                dispatch_vscode_message(msg)
-                vscode_netq:pop_front(0)
-            end
-            
-            while not runtime_netq:empty(0) do
-                local msg = runtime_netq:front_as_string(0)
-                runtime_netq:pop_front(0)
-                dispatch_runtime_message(msg)
-            end
-        end,10)
-        event_loop:Run()
+        start_stdio_read_thread()
     else
-        local cx_server = ez_tcp_server_create(event_loop, PORT,'VscodeServer')
-        -- local cx_client = ez_tcp_client_create(event_loop,'127.0.0.1', PORT,'Client')
-        
+        cx_server = ez_tcp_server_create(event_loop, PORT,'VscodeServer')
         cx_server:set_on_connection(cx_server_on_connect)        
-        
         local vscode_on_message_parser = create_on_message_parser()
         cx_server:set_on_message(function(conn, buf, ts)
             vscode_on_message_parser(conn,buf,vscode_netq)
-        end)   
-        event_loop:RunTaskEvery(function()    
-            while not vscode_netq:empty(0) do
-                local msg = vscode_netq:front_as_string(0)
-                vscode_netq:pop_front(0)
-                dispatch_vscode_message(msg)
-            end
-
-            -- while not vscode_netq:empty(1) do
-            --     local msg = vscode_netq:front_as_string(1)
-            --     vscode_netq:pop_front(1)
-            --     vscode_handler:send(msg)
-            --     -- cx_server(msg)
-            -- end
-            
-            while not runtime_netq:empty(0) do
-                local msg = runtime_netq:front_as_string(0)
-                runtime_netq:pop_front(0)
-                dispatch_runtime_message(msg)
-            end
-        end,10)
+        end)       
         cx_server:Start()
-        event_loop:Run()
     end
     
+    event_loop:RunTaskEvery(function()    
+        while not vscode_netq:empty(0) do
+            local msg = vscode_netq:front_as_string(0)
+            vscode_netq:pop_front(0)
+            dispatch_vscode_message(msg)
+        end
+
+        while not runtime_netq:empty(0) do
+            local msg = runtime_netq:front_as_string(0)
+            runtime_netq:pop_front(0)
+            dispatch_runtime_message(msg)
+        end
+    end,10)
+
+    event_loop:Run()
     
     
     -- if luadbg_is_stdio_mode() then
