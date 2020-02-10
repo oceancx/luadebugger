@@ -335,15 +335,19 @@ function debugger_handle_message_new(msg)
             variable.value = tostring(v)
             if variable.type == 'table' then
                 variable.variablesReference = encode_vars2ref(v)
+            else
+                variable.variablesReference = 0
             end
             table.insert(variables,variable)
         end
         table.sort(variables,function(a,b)
             return a.name < b.name
         end)
-        req.body = {
-            variables = variables
-        }
+        if #variables > 0 then
+            req.body = {
+                variables = variables
+            }
+        end
         _send_response(req)
     elseif cmd == "source" then
         

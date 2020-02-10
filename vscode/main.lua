@@ -42,9 +42,7 @@ function create_on_message_parser()
                     if not LINE_ENDING then
                         local s,e = preview:find("\r\n")
                         LINE_ENDING = s and "\r\n" or "\n"
-                        if THREAD_NAME == 'vscode' then
-                            set_line_ending_in_c(LINE_ENDING)
-                        end
+                        set_line_ending_in_c(LINE_ENDING)
                     end
                     local line = buf:ReadAsString(e)
                     local match = line:gmatch("Content%-Length: (%d*)")()
@@ -122,12 +120,13 @@ end
 
 function vscode_send_response(req)
     local resp = {}
-    resp.type = 'response'
-    resp.command = req.command
-    resp.request_seq = req.seq
-    resp.success = true
     resp.seq = message_seq
     message_seq = message_seq + 1        
+
+    resp.type = 'response'
+    resp.request_seq = req.seq
+    resp.command = req.command
+    resp.success = true
     if req.body then
         resp.body = req.body
     end
@@ -208,7 +207,11 @@ function dispatch_vscode_message(js)
             req.body = {
                 supportsConfigurationDoneRequest = true,
                 supportsEvaluateForHovers = true,
-                supportsStepBack = true
+                supportsStepBack = true,
+                supportsDataBreakpoints = false,
+                supportsCompletionsRequest = false,
+                supportsCancelRequest = false,
+                supportsBreakpointLocationsRequest = false
             }
             vscode_send_response(req)
             vscode_send_event('initialized')
