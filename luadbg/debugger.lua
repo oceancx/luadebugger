@@ -251,12 +251,12 @@ function debugger_handle_message_new(msg)
         _SetBreakpoints(req)
     elseif cmd == "configurationDone" then
         if launch_req then
-            _send_response(launch_req)
-            if launch_req.stopOnEntry then
+            _send_response(req)
+            if launch_req.arguments.stopOnEntry then
                 _send_event('stopped', { reason='entry', threadId = MAIN_THREAD_ID })
                 step_into = true        --stop on entry
             end
-            _send_response(req)
+            _send_response(launch_req)
         end
     elseif cmd == "continue" then
         -- assert(breaked_in_hook)
