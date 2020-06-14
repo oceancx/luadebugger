@@ -5,4 +5,3 @@ test\luadbgtest.exe
 *.pdb
 *.exe
 .vscode/ipch
-vscode/luadbgadapter-0.1.0.vsix
