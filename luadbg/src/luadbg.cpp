@@ -92,6 +92,16 @@ void DebuggeeThreadFunc(int port)
 
 int luadbg_listen(lua_State* L)
 {
+	bool init_net_context = false;
+	if (!lua_isnil(L, 2))
+	{
+		init_net_context = (bool)lua_toboolean(L, 2);
+	}
+	if (init_net_context)
+	{
+		new kbase::AtExitManager();
+		ezio::IOServiceContext::Init();
+	}
 	int port = (int)lua_tointeger(L, 1);
 	if (port > 0)
 	{
