@@ -4,3 +4,5 @@ Debug/
 bin/
 *.exe
 *.log
+dist/
+Release/

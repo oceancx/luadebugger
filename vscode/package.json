@@ -1,7 +1,7 @@
 {
   "name": "luadbgadapter",
-  "displayName": "CXLuaDebuggerAdapter",
-  "version": "0.1.0",
+  "displayName": "CXLuaDebugger",
+  "version": "0.5.2",
   "publisher": "oceancx",
   "author": {
     "name": "oceancx"
