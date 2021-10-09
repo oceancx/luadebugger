@@ -3,3 +3,6 @@
 可以调试CXEngine，CXServer，cxluax
 
 有问题请加群：983630090
+
+
+https://github.com/oceancx/luadebugger
