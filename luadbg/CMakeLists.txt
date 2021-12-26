@@ -16,6 +16,7 @@ add_library(luadbg_static
   ${SOURCES_HEADER_PUB}
   ${SOURCES_HEADER_PRI}
   src/luadbg.cpp
+  src/luadbg.inl
 )
 target_compile_definitions(luadbg_static 
   PRIVATE 
@@ -62,6 +63,7 @@ add_library(luadbg_shared SHARED
   ${SOURCES_HEADER_PUB}
   ${SOURCES_HEADER_PRI}
   src/luadbg.cpp
+  src/luadbg.inl
 )
 
 target_compile_definitions(luadbg_shared 

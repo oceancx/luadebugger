@@ -6,7 +6,7 @@ function create_on_message_parser()
     local parsed_len = -1
     local readstate = 1
     local LINE_ENDING = nil
-    return function(conn,buf,netq)
+    return function(buf,netq)
         while buf:readable_size() > 0 do 
             local preview = buf:Preview(buf:readable_size())
             if readstate == 1 then
@@ -51,17 +51,17 @@ function create_on_message_parser()
     end
 end
 
-function debuggee_on_connection(conn,netq)
+function debuggee_on_connection(netq)
     --print('[debuggee]' ..conn:tohostport().. ' ' ..(conn:connected() and 'connected' or 'disconnected'))
-    local buf = ezio_buffer_create()
-    buf:WriteString(cjson.encode({ type='debuggee', event='connection_state', connected = conn:connected(), addr = conn:tohostport()  }))
-    netq:push_back(0,buf,buf:readable_size())
-    ezio_buffer_destroy(buf)
+    -- local buf = ezio_buffer_create()
+    -- buf:WriteString(cjson.encode({ type='debuggee', event='connection_state', connected = conn:connected(), addr = conn:tohostport()  }))
+    -- netq:push_back(0,buf,buf:readable_size())
+    -- ezio_buffer_destroy(buf)
 end
 
 local debuggee_on_message_parser = create_on_message_parser()
-function debuggee_on_message(conn,buf,netq)
-    debuggee_on_message_parser(conn,buf,netq)
+function debuggee_on_message(buf,netq)
+    debuggee_on_message_parser(buf,netq)
 end)_";
 
 const char* debugger_code = R"_(
