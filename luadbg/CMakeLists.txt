@@ -3,7 +3,6 @@ project (luadbg VERSION 1.0.0 LANGUAGES C CXX)
 
 find_package(CXLua)
 
-
 file(GLOB_RECURSE  SOURCES_CPP "src/*.cpp" "src/*.c")
 file(GLOB_RECURSE  SOURCES_HEADER_RPI "src/*.h" )
 file(GLOB_RECURSE  SOURCES_HEADER_PUB "include/*.h" "include/*.inl" "include/*.lua")

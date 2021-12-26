@@ -4,17 +4,8 @@
 
 #include <functional>
 #include <thread>
-
-#include "kbase/at_exit_manager.h"
-#include "ezio/io_context.h"
-#include "ezio/io_service_context.h"
-#include "ezio/event_loop.h"
-#include "ezio/socket_address.h"
-#include "ezio/tcp_server.h"
-#include "ezio/tcp_connection.h"
-#include "ezio/buffer.h"
-#include "ezio/acceptor.h"
-#include "ezio/connector.h"
+ 
+#include "cxezio/buffer.h" 
 
 #include "luadbg.inl"
 #include "lua_bind.h"
@@ -22,7 +13,7 @@
 
 #include "asio.hpp"
 
-
+using namespace cxezio;
 using asio::ip::tcp;
 std::string LUADBG_LINES_ENDING = "";
 int debugger_send_message(lua_State* L);
@@ -70,7 +61,7 @@ public:
 				{
 					ezBuf.Write(m_Buffer.data(), m_Buffer.size());
 					lua_getglobal(m_L, "debuggee_on_message");
-					lua_push_ezio_buffer(m_L, ezBuf);
+					lua_push_cxezio_buffer(m_L, ezBuf);
 					lua_push_net_thread_queue(m_L, &g_DebugAdapterQueue);
 					int res = lua_pcall(m_L, 2, 0, 0);
 					check_lua_error(m_L, res);
@@ -85,7 +76,7 @@ public:
 	}
 	void Send(const char* data, size_t len)
 	{
-		ezio::Buffer sendBuff;
+		Buffer sendBuff;
 		sendBuff.Write(data, len);
 		asio::write(m_Socket,
 			asio::buffer(sendBuff.Peek(),
@@ -94,7 +85,7 @@ public:
 
 private:
 	asio::io_context& m_IOContext;
-	ezio::Buffer ezBuf;
+	Buffer ezBuf;
 	tcp::socket m_Socket;
 	std::vector<char> m_Buffer;
 	lua_State* m_L;
